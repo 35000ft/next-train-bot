@@ -1,7 +1,5 @@
 services:
-  bot:
+  app:
     build: .
     env_file:
       - dev.env
-    volumes:
-      - /www/log:/app/app/

@@ -1,8 +1,7 @@
 import botpy
-from botpy.message import GroupMessage, C2CMessage
 from botpy import logging
+from botpy.message import GroupMessage, C2CMessage
 
-from app.config import Config
 from app.events.next_train_events import handle_get_station_realtime
 from app.utils.command_utils import parse_command
 

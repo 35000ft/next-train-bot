@@ -5,12 +5,12 @@ WORKDIR /app
 
 COPY . /app
 
+# 列出当前目录内容，验证文件是否正确复制
+RUN ls -al /app/app
+
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
-
-# 列出当前目录内容，验证文件是否正确复制
-RUN ls -la
 
 # 安装项目依赖
 RUN pip install --no-cache-dir -r requirements.txt

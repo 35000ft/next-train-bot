@@ -1,7 +1,7 @@
 import botpy
 
 from app.config import Config
-from bot.next_train_robot import NextTrainClient
+from app.bot.next_train_robot import NextTrainClient
 
 if __name__ == "__main__":
     # 通过kwargs，设置需要监听的事件通道
