@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import List, Dict
 
+import pytz
 from botpy.message import GroupMessage, C2CMessage
 import wcwidth
 from app.models.Railsystem import Station
@@ -11,17 +12,19 @@ from tabulate import tabulate
 from logging import getLogger
 
 from app.service.realtime_service import get_station_realtime
+from app.utils import time_utils
 
 logger = getLogger(__name__)
 
 
-def filter_latest_train_for_each_terminal(train_info_list: List[TrainInfo]) -> List[TrainInfo]:
+def filter_latest_train_for_each_terminal(train_info_list: List[TrainInfo], **kwargs) -> List[TrainInfo]:
     """
     按 terminal 分组，每组中选择 dep 最近且在当前时间之后的记录。
     """
     # 获取当前时间
-    now = datetime.now()
-
+    now = datetime.now(pytz.timezone('Asia/Shanghai'))
+    if not train_info_list:
+        return []
     # 按 terminal 分组
     grouped_by_terminal = {}
     for train_info in train_info_list:
