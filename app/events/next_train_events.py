@@ -13,6 +13,7 @@ from logging import getLogger
 
 from app.service.realtime_service import get_station_realtime
 from app.utils import time_utils
+from app.utils.time_utils import get_offset_from_str
 
 logger = getLogger(__name__)
 
@@ -22,7 +23,7 @@ def filter_latest_train_for_each_terminal(train_info_list: List[TrainInfo], **kw
     按 terminal 分组，每组中选择 dep 最近且在当前时间之后的记录。
     """
     # 获取当前时间
-    now = datetime.now(pytz.timezone('Asia/Shanghai'))
+    now = time_utils.get_now(get_offset_from_str(kwargs['timezone']))
     if not train_info_list:
         return []
     # 按 terminal 分组
@@ -72,13 +73,13 @@ async def handle_get_station_realtime(message: GroupMessage | C2CMessage, statio
     if not train_info_dict:
         await message.reply(content=f'获取 {station_name} 实时列车失败')
         return
-    content = f'车站:{station_name} 实时列车 更新于:{datetime.now().strftime("%H:%M:%S")}\n'
+    content = f'车站:{station_name} 实时列车 更新于:{time_utils.get_now(get_offset_from_str(station.timezone)).strftime("%H:%M:%S")}\n'
 
     for line_id, train_info_list in train_info_dict.items():
         line = line_dict.get(line_id)
         if line:
             content += f'{line.name}:\n'
-            _train_list = filter_latest_train_for_each_terminal(train_info_list)
+            _train_list = filter_latest_train_for_each_terminal(train_info_list, timezone=station.timezone)
             if not _train_list:
                 content += '    暂无列车\n'
                 continue

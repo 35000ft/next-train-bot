@@ -1,15 +1,14 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import pytz
 
 
-def create_timezone(offset_str):
+def get_offset_from_str(offset_str):
     if not offset_str:
-        return pytz.timezone('UTC')
+        return 0
     # 解析偏移字符串，例如 "+08:00" 或 "-05:00"
     hours, minutes = map(int, offset_str.split(':'))
-    total_offset = hours * 60 + minutes
-    return pytz.FixedOffset(total_offset)
+    return hours * 60 + minutes
 
 
-def get_now(timezone: str = None) -> datetime:
-    return datetime.now(create_timezone(timezone))
+def get_now(timeoffset: int = None) -> datetime:
+    return datetime.now() + timedelta(minutes=timeoffset)
