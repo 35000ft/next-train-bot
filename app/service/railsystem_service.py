@@ -77,12 +77,12 @@ async def get_station_detail_byid(station_id: str):
     try:
         async with httpx.AsyncClient() as client:
             resp = await client.get(url=url, headers=nmtr_headers)
-            if resp.status_code == 200:
-                j_obj = resp.json()
-                j_obj = j_obj['data'] if 'data' in j_obj else j_obj
+            resp.raise_for_status()
+            j_obj = resp.json()
+            j_obj = j_obj['data'] if 'data' in j_obj else j_obj
 
-                station = RailsystemSchemas.Station(**j_obj)
-                return station
+            station = RailsystemSchemas.Station(**j_obj)
+            return station
     except Exception as e:
         logger.warning(f'Get station detail error, station_id:{station_id} err:{e}')
         return None

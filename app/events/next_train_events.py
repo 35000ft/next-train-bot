@@ -1,6 +1,7 @@
 import os
 from typing import List, Dict, Tuple
 
+import numpy as np
 from botpy import logging
 from botpy.message import GroupMessage, C2CMessage
 from tabulate import tabulate
@@ -12,6 +13,7 @@ from app.service.personaliz_service import get_default_railsystem_code, set_defa
 from app.service.realtime_service import get_station_realtime
 from app.utils import time_utils
 from app.utils.command_utils import get_group_and_user_id
+from app.utils.ticket_price import query_ticket_price
 from app.utils.time_utils import get_offset_from_str
 
 logger = logging.get_logger()
@@ -47,7 +49,7 @@ def filter_latest_train_for_each_terminal(train_info_list: List[TrainInfo], **kw
 
 
 async def handle_get_station_realtime(message: GroupMessage | C2CMessage, station_name: str, **kwargs):
-    await message.reply(content=f'查询{station_name}实时列车中, 请稍后', msg_seq=1)
+    await message.reply(content=f'查询车站 {station_name} 实时列车中, 请稍后', msg_seq=1)
     r: Tuple[RailsystemSchemas.Station, Dict[str, RailsystemSchemas.Line]] = \
         await (handle_get_station_by_name(message, station_name, msg_seq=1, **kwargs))
     if not r:
@@ -73,8 +75,9 @@ async def handle_get_station_realtime(message: GroupMessage | C2CMessage, statio
             table = [[train_info.terminal, train_info.dep.strftime('%H:%M'), train_info.trainType] for train_info in
                      _train_list]
             content += tabulate(table, headers, tablefmt='simple')
-
-            content += f'更多信息，请访问{os.getenv("NMTR_BASE_URL")}'
+            content += '\n'
+            # TODO 狗tx不给发url
+            # content += f'更多信息，请访问{os.getenv("NMTR_BASE_URL")}station/{station.id}'
 
     await message.reply(content=content, msg_seq=2)
 
@@ -98,3 +101,25 @@ async def handle_get_default_railsystem(message: GroupMessage | C2CMessage, rail
         await message.reply(content=f'设置默认线网成功，只会在本群对你生效, 如需全局生效请加"-g"')
     else:
         await message.reply(content=f'设置默认线网成功，当前你的默认线网:{railsystem_to_set}')
+
+
+async def handle_query_price(message: GroupMessage | C2CMessage, from_station_name: str, to_station_name: str,
+                             **kwargs):
+    await message.reply(content=f'查询车站 {from_station_name}~{to_station_name} 票价中, 请稍后', msg_seq=1)
+    from_r: Tuple[RailsystemSchemas.Station, Dict[str, RailsystemSchemas.Line]] = \
+        await (handle_get_station_by_name(message, from_station_name, msg_seq=1))
+    if not from_r:
+        return
+
+    to_r: Tuple[RailsystemSchemas.Station, Dict[str, RailsystemSchemas.Line]] = \
+        await (handle_get_station_by_name(message, to_station_name, msg_seq=1))
+    if not to_r:
+        return
+
+    to_station, _ = to_r
+    from_station, _ = from_r
+    price = await query_ticket_price(from_station.railsystemCode, from_station.name, to_station.name)
+    if price is not None:
+        await message.reply(content=f'{from_station.name}->{to_station.name} 票价为:{price}元', msg_seq=2)
+    else:
+        await message.reply(content=f'找不到 {from_station.name}->{to_station.name} 的票价', msg_seq=2)
