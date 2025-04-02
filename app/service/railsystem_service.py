@@ -2,11 +2,11 @@ import asyncio
 import logging
 import os
 
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 import httpx
 from async_lru import alru_cache
-from sqlalchemy import select
+from sqlalchemy import select, or_
 
 from app.config import get_db_session
 from app.models.Railsystem import Station
@@ -46,6 +46,30 @@ async def get_station_by_names(name_list: List[str], railsystem: str = None) -> 
         return r_result
 
 
+async def get_station_by_keyword(keyword: str, railsystem: str = None) -> List[Station] | Optional[Station]:
+    async with get_db_session() as session:
+        stmt = select(Station).where(or_(Station.name.ilike(f'%{keyword}%'), Station.code == keyword.upper()))
+        # 如果 railsystem 不为空或空字符串，则加入额外条件
+        if railsystem:
+            stmt = stmt.where(Station.system_code == railsystem)
+        stmt = stmt.order_by(Station.name.asc(), Station.id.asc())
+
+        result = await session.execute(stmt)
+        stations: List[Station] = result.scalars().all()
+        if not stations:
+            return None
+
+        full_match = list(
+            filter(lambda x: x.name.upper() == keyword.upper() or x.code.upper() == keyword.upper(), stations))
+        if full_match:
+            return full_match[0] if len(full_match) == 1 else full_match
+
+        if len(stations) == 1:
+            return stations[0]
+        else:
+            return stations
+
+
 @alru_cache(maxsize=64, ttl=600)
 async def get_station_detail_byid(station_id: str):
     logger.debug(f'station id:{station_id}')
@@ -60,6 +84,5 @@ async def get_station_detail_byid(station_id: str):
                 station = RailsystemSchemas.Station(**j_obj)
                 return station
     except Exception as e:
-        print(e)
         logger.warning(f'Get station detail error, station_id:{station_id} err:{e}')
         return None

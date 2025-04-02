@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Table, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, Table, ForeignKey, BigInteger, Text, TIMESTAMP, func
 from sqlalchemy.orm import declarative_base, relationship
 
 Line_Station = Table('tb_line_station', declarative_base().metadata,
@@ -28,3 +28,21 @@ class Station(declarative_base()):
     en_name = Column(String, nullable=False)
     system_code = Column(String, nullable=False)
     location = Column(String, nullable=False)
+
+
+class PersonalConfig(declarative_base()):
+    __tablename__ = 'tb_personal_config'
+    __table_args__ = {'schema': 'next_train_bot'}
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    name = Column(Text, nullable=True)
+    category_key = Column(String(255), nullable=True)
+    group_id = Column(String(128), nullable=True)
+    user_id = Column(String(128), nullable=True)
+    params = Column(Text, nullable=True)
+    status = Column(Integer, nullable=True, server_default='1')
+    create_time = Column(TIMESTAMP, server_default=func.now())
+    update_time = Column(TIMESTAMP, onupdate=func.now(), nullable=True)
+
+    def __repr__(self):
+        return f"<PersonalConfig(id={self.id}, name={self.name}, category_key={self.category_key})>"

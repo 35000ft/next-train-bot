@@ -1,5 +1,4 @@
-from datetime import datetime, timedelta
-import pytz
+from datetime import datetime, timedelta, timezone
 
 
 def get_offset_from_str(offset_str):
@@ -11,4 +10,4 @@ def get_offset_from_str(offset_str):
 
 
 def get_now(timeoffset: int = None) -> datetime:
-    return datetime.now() + timedelta(minutes=timeoffset)
+    return datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(minutes=timeoffset)
