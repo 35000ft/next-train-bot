@@ -2,3 +2,5 @@
 README.md
 .venv
 *.log
+*.png
+*.jpg

@@ -57,7 +57,8 @@ async def get_schedule_image(station_name: str, line_name: str, station_id: str,
         os.makedirs(download_dir)
 
     chrome_options = Options()
-    chrome_options.add_argument('--headless=new')  # 无界面模式
+    chrome_options.add_argument("--lang=zh-CN")
+    chrome_options.add_argument('--headless=new')
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--disable-dev-shm-usage')
     prefs = {
