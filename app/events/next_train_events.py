@@ -1,4 +1,3 @@
-import os
 from typing import List, Dict, Tuple
 
 import numpy as np
@@ -9,10 +8,13 @@ from tabulate import tabulate
 from app.events.common_events import handle_get_station_by_name
 from app.schemas import RailsystemSchemas
 from app.schemas.RailsystemSchemas import TrainInfo
+from app.service.file_service import cache_uploaded_file, get_cached_uploaded_file
 from app.service.personaliz_service import get_default_railsystem_code, set_default_railsystem_code
-from app.service.realtime_service import get_station_realtime
+from app.service.realtime_service import get_station_realtime, get_schedule_image
 from app.utils import time_utils
 from app.utils.command_utils import get_group_and_user_id
+from app.utils.message_utils import post_group_base64_file
+from app.utils.time_utils import get_offset_from_str, get_now
 from app.utils.ticket_price import query_ticket_price
 from app.utils.time_utils import get_offset_from_str
 
@@ -49,7 +51,7 @@ def filter_latest_train_for_each_terminal(train_info_list: List[TrainInfo], **kw
 
 
 async def handle_get_station_realtime(message: GroupMessage | C2CMessage, station_name: str, **kwargs):
-    await message.reply(content=f'查询车站 {station_name} 实时列车中, 请稍后', msg_seq=1)
+    await message.reply(content=f'查询{station_name}实时列车中, 请稍后', msg_seq=1)
     r: Tuple[RailsystemSchemas.Station, Dict[str, RailsystemSchemas.Line]] = \
         await (handle_get_station_by_name(message, station_name, msg_seq=1, **kwargs))
     if not r:
@@ -72,12 +74,17 @@ async def handle_get_station_realtime(message: GroupMessage | C2CMessage, statio
                 continue
 
             headers = ['终点站', '出发时刻', '类型']
-            table = [[train_info.terminal, train_info.dep.strftime('%H:%M'), train_info.trainType] for train_info in
-                     _train_list]
+            table = [
+                [
+                    train_info.terminal,
+                    train_info.dep.strftime('%H:%M') if not train_info.isLastStop
+                    else train_info.arr.strftime('%H:%M'),
+                    train_info.trainType if not train_info.isLastStop else '终到'
+                ]
+                for train_info in _train_list]
             content += tabulate(table, headers, tablefmt='simple')
+
             content += '\n'
-            # TODO 狗tx不给发url
-            # content += f'更多信息，请访问{os.getenv("NMTR_BASE_URL")}station/{station.id}'
 
     await message.reply(content=content, msg_seq=2)
 
@@ -101,6 +108,69 @@ async def handle_get_default_railsystem(message: GroupMessage | C2CMessage, rail
         await message.reply(content=f'设置默认线网成功，只会在本群对你生效, 如需全局生效请加"-g"')
     else:
         await message.reply(content=f'设置默认线网成功，当前你的默认线网:{railsystem_to_set}')
+
+
+async def handle_get_station_schedule(message: GroupMessage | C2CMessage, station_name: str, line_code: str = None,
+                                      **kwargs):
+    await message.reply(content=f'查询{station_name}时刻表中, 请稍后', msg_seq=1)
+    r: Tuple[RailsystemSchemas.Station, Dict[str, RailsystemSchemas.Line]] = \
+        await (handle_get_station_by_name(message, station_name, msg_seq=1, **kwargs))
+    if not r:
+        return
+    station, line_dict = r
+    if len(line_dict) == 0:
+        await message.reply(content=f'车站:{station.name} 暂无可查看的时刻表', msg_seq=2)
+        return
+
+    line_code = line_code.strip().strip('号线').upper() if line_code else None
+    _temp_lines = list(filter(lambda x: x.code == line_code, line_dict.values())) if line_dict else []
+    line = _temp_lines[0] if _temp_lines else None
+
+    if not line and len(line_dict) > 1:
+        content = f'车站:{station.name} 有多条线路，要查看哪一条？\n'
+        for _line in line_dict.values():
+            content += f"/时刻表 {station.name} {_line.code}\n"
+        await message.reply(content=content, msg_seq=2)
+        return
+    if not line and len(line_dict) == 1:
+        line = list(line_dict.values())[0]
+
+    _date = get_now(get_offset_from_str(station.timezone))
+    cache_key = f'schedule:{station.id}:{line.id}:{_date.strftime("%Y%m%d")}'
+    if uploaded_file := await get_cached_uploaded_file(cache_key):
+        logger.info(f'Cache hit:{station.name} {line.name}')
+        await message._api.post_group_message(
+            group_openid=message.group_openid,
+            msg_type=7,
+            msg_id=message.id,
+            media=uploaded_file,
+            msg_seq=2,
+        )
+        return
+    try:
+        base64_data = await get_schedule_image(station.name, line.name, station_id=station.id, line_id=line.id,
+                                               _date=_date)
+    except Exception as e:
+        logger.exception(e)
+        await message.reply(content=f'获取车站:{station.name} 时刻表失败', msg_seq=2)
+        return
+
+    uploadMedia = await post_group_base64_file(
+        _message=message,
+        file_data=base64_data,
+        group_openid=message.group_openid,
+        file_type=1,  # 文件类型要对应上，具体支持的类型见方法说明
+    )
+    logger.info(f'上传成功:{uploadMedia}')
+    # 资源上传后，会得到Media，用于发送消息
+    await message._api.post_group_message(
+        group_openid=message.group_openid,
+        msg_type=7,
+        msg_id=message.id,
+        media=uploadMedia,
+        msg_seq=2,
+    )
+    await cache_uploaded_file(cache_key, uploadMedia)
 
 
 async def handle_query_price(message: GroupMessage | C2CMessage, from_station_name: str, to_station_name: str,

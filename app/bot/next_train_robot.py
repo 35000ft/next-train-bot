@@ -2,6 +2,8 @@ import botpy
 from botpy import logging
 from botpy.message import GroupMessage, C2CMessage
 
+from app.events.next_train_events import handle_get_station_realtime, handle_get_default_railsystem, \
+    handle_get_station_schedule
 from app.events.next_train_events import handle_get_station_realtime, handle_get_default_railsystem, handle_query_price
 from app.utils.command_utils import parse_command
 
@@ -12,6 +14,7 @@ class NextTrainClient(botpy.Client):
     command_dict = {
         '实时': handle_get_station_realtime,
         '默认线网': handle_get_default_railsystem,
+        '时刻表': handle_get_station_schedule,
         '票价': handle_query_price,
     }
 
@@ -38,4 +41,4 @@ class NextTrainClient(botpy.Client):
                 await message.reply(content='目前不支持该指令哦~')
         except Exception as e:
             _log.warning(e)
-            await message.reply(content='指令无效哦', msg_seq=10)
+            await message.reply(content='指令无效哦', msg_seq=message.msg_seq)
