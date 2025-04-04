@@ -27,7 +27,7 @@ async def get_station_realtime(station_id: str, line_ids: List[str]) -> Dict[str
             return None
         return [TrainInfo(**x) for x in r if x]
 
-    base_url = f'https://nmtr.online/metro-realtime/station/train-info/v2/{station_id}/'
+    base_url = f'{os.getenv("REALTIME_API_BASEURL")}/station/train-info/v2/{station_id}/'
     tasks = []
     try:
         for line_id in line_ids:
@@ -71,7 +71,7 @@ async def get_schedule_image(station_name: str, line_name: str, station_id: str,
     service = Service()
     driver = webdriver.Chrome(service=service, options=chrome_options)
     driver.set_window_size(360, 1080)
-    url = f"https://nmtr.online/next-train/#/station/schedule/{station_id}/{line_id}"  # 修改为实际的网页 URL
+    url = f"{os.getenv("NEXT_TRAIN_PAGE_BASEURL")}/station/schedule/{station_id}/{line_id}"  # 修改为实际的网页 URL
     try:
         logger.info(f'Get url:{url}')
         driver.get(url)

@@ -1,6 +1,5 @@
 from typing import List, Dict, Tuple
 
-import numpy as np
 from botpy import logging
 from botpy.message import GroupMessage, C2CMessage
 from tabulate import tabulate
@@ -14,8 +13,8 @@ from app.service.realtime_service import get_station_realtime, get_schedule_imag
 from app.utils import time_utils
 from app.utils.command_utils import get_group_and_user_id
 from app.utils.message_utils import post_group_base64_file
-from app.utils.time_utils import get_offset_from_str, get_now
-from app.utils.ticket_price import query_ticket_price
+from app.utils.time_utils import get_now
+from app.service.ticket_price_service import query_ticket_price
 from app.utils.time_utils import get_offset_from_str
 
 logger = logging.get_logger()
@@ -173,23 +172,41 @@ async def handle_get_station_schedule(message: GroupMessage | C2CMessage, statio
     await cache_uploaded_file(cache_key, uploadMedia)
 
 
-async def handle_query_price(message: GroupMessage | C2CMessage, from_station_name: str, to_station_name: str,
-                             **kwargs):
-    await message.reply(content=f'查询车站 {from_station_name}~{to_station_name} 票价中, 请稍后', msg_seq=1)
-    from_r: Tuple[RailsystemSchemas.Station, Dict[str, RailsystemSchemas.Line]] = \
-        await (handle_get_station_by_name(message, from_station_name, msg_seq=1))
-    if not from_r:
+async def handle_query_price(message: GroupMessage | C2CMessage, *station_names, **kwargs):
+    if len(station_names) <= 1:
+        await message.reply(content='至少要传入两个车站哦')
         return
-
-    to_r: Tuple[RailsystemSchemas.Station, Dict[str, RailsystemSchemas.Line]] = \
-        await (handle_get_station_by_name(message, to_station_name, msg_seq=1))
-    if not to_r:
+    max_station_len = kwargs.get('max_station_len', 6)
+    if len(station_names) > max_station_len:
+        await message.reply(content=f"最多支持{max_station_len - 1}段行程哦")
         return
+    all_stations = []
+    total_price = 0
+    for i in range(0, len(station_names) - 1):
+        from_station_name = station_names[i]
+        to_station_name = station_names[i + 1]
+        from_r: Tuple[RailsystemSchemas.Station, Dict[str, RailsystemSchemas.Line]] = \
+            await (handle_get_station_by_name(message, from_station_name, msg_seq=1))
+        if not from_r:
+            return
 
-    to_station, _ = to_r
-    from_station, _ = from_r
-    price = await query_ticket_price(from_station.railsystemCode, from_station.name, to_station.name)
-    if price is not None:
-        await message.reply(content=f'{from_station.name}->{to_station.name} 票价为:{price}元', msg_seq=2)
-    else:
-        await message.reply(content=f'找不到 {from_station.name}->{to_station.name} 的票价', msg_seq=2)
+        to_r: Tuple[RailsystemSchemas.Station, Dict[str, RailsystemSchemas.Line]] = \
+            await (handle_get_station_by_name(message, to_station_name, msg_seq=1))
+        if not to_r:
+            return
+
+        to_station, _ = to_r
+        from_station, _ = from_r
+
+        all_stations.append(from_station)
+        if i == len(station_names) - 2:
+            all_stations.append(to_station)
+
+        price = await query_ticket_price(from_station.railsystemCode, from_station.name, to_station.name)
+        if price is not None:
+            total_price += price
+        else:
+            await message.reply(content=f'找不到 {from_station.name}->{to_station.name} 的票价', msg_seq=2)
+            return
+    content = f'{"->".join([x.name for x in all_stations])} 票价为:{total_price}元'
+    await message.reply(content=content, msg_seq=2)
