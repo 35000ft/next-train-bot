@@ -5,6 +5,7 @@ from botpy.message import GroupMessage, C2CMessage
 from tabulate import tabulate
 
 from app.events.common_events import handle_get_station_by_name
+from app.events.daily_ticket_events import handle_njmtr_daily_ticket
 from app.schemas import RailsystemSchemas
 from app.schemas.RailsystemSchemas import TrainInfo
 from app.service.file_service import cache_uploaded_file, get_cached_uploaded_file
@@ -13,7 +14,7 @@ from app.service.realtime_service import get_station_realtime, get_schedule_imag
 from app.utils import time_utils
 from app.utils.command_utils import get_group_and_user_id
 from app.utils.message_utils import post_group_base64_file
-from app.utils.time_utils import get_now
+from app.utils.time_utils import get_now, end_of_date_timestamp
 from app.service.ticket_price_service import query_ticket_price
 from app.utils.time_utils import get_offset_from_str
 
@@ -137,7 +138,6 @@ async def handle_get_station_schedule(message: GroupMessage | C2CMessage, statio
     _date = get_now(get_offset_from_str(station.timezone))
     cache_key = f'schedule:{station.id}:{line.id}:{_date.strftime("%Y%m%d")}'
     if uploaded_file := await get_cached_uploaded_file(cache_key):
-        logger.info(f'Cache hit:{station.name} {line.name}')
         await message._api.post_group_message(
             group_openid=message.group_openid,
             msg_type=7,
@@ -154,28 +154,32 @@ async def handle_get_station_schedule(message: GroupMessage | C2CMessage, statio
         await message.reply(content=f'获取车站:{station.name} 时刻表失败', msg_seq=2)
         return
 
-    uploadMedia = await post_group_base64_file(
+    upload_media = await post_group_base64_file(
         _message=message,
         file_data=base64_data,
         group_openid=message.group_openid,
         file_type=1,  # 文件类型要对应上，具体支持的类型见方法说明
     )
-    logger.info(f'上传成功:{uploadMedia}')
+    logger.info(f'上传成功:{upload_media}')
     # 资源上传后，会得到Media，用于发送消息
     await message._api.post_group_message(
         group_openid=message.group_openid,
         msg_type=7,
         msg_id=message.id,
-        media=uploadMedia,
+        media=upload_media,
         msg_seq=2,
     )
-    await cache_uploaded_file(cache_key, uploadMedia)
+    await cache_uploaded_file(cache_key, upload_media, expire_at=end_of_date_timestamp(_date))
 
 
 async def handle_query_price(message: GroupMessage | C2CMessage, *station_names, **kwargs):
     if len(station_names) <= 1:
         await message.reply(content='至少要传入两个车站哦')
         return
+
+    if len(station_names) == 2:
+        return
+
     max_station_len = kwargs.get('max_station_len', 6)
     if len(station_names) > max_station_len:
         await message.reply(content=f"最多支持{max_station_len - 1}段行程哦")
@@ -210,3 +214,16 @@ async def handle_query_price(message: GroupMessage | C2CMessage, *station_names,
             return
     content = f'{"->".join([x.name for x in all_stations])} 票价为:{total_price}元'
     await message.reply(content=content, msg_seq=2)
+
+
+async def handle_daily_ticket(message: GroupMessage | C2CMessage, station_name: str, **kwargs):
+    r: Tuple[RailsystemSchemas.Station, Dict[str, RailsystemSchemas.Line]] = \
+        await (handle_get_station_by_name(message, station_name, msg_seq=1, **kwargs))
+    if not r:
+        return
+    station, line_dict = r
+    railsystem_code = station.railsystemCode
+    if railsystem_code == 'NJMTR':
+        return await handle_njmtr_daily_ticket(message, station, **kwargs)
+    else:
+        await message.reply(content=f'线网:{railsystem_code} 不支持日票哦')

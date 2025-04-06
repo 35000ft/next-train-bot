@@ -33,7 +33,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 RUN mkdir -p /app/data \
     && mkdir -p /app/log \
-    && mkdir -p /app/data/schedules
+    && mkdir -p /app/data/schedules \
+    && mkdir -p /app/data/ticket-prices
 
 # 定义容器启动时运行的命令
 ENTRYPOINT ["python3", "-m","app.main"]

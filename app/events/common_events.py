@@ -1,8 +1,11 @@
+import random
 from typing import List, Dict, Tuple
 
 from botpy import logging
 from botpy.message import GroupMessage, C2CMessage
 
+from app.events.anun_events import get_star_party
+from app.events.post_events import handle_get_post
 from app.models.Railsystem import Station
 from app.schemas import RailsystemSchemas
 from app.service.personaliz_service import get_default_railsystem_code
@@ -62,3 +65,21 @@ async def handle_get_station_by_name(message: GroupMessage | C2CMessage, station
             line_dict: Dict[str, RailsystemSchemas.Line] = {x.id: x for x in filtered_lines}
 
     return _station, line_dict
+
+
+async def handle_fa(message: GroupMessage | C2CMessage, *args, **kwargs):
+    if not args:
+        empty_contents = ['发null', '发，发什么发', '发undefined', '发nil', '发NaN', '发疒']
+        await message.reply(content=random.choice(empty_contents), msg_seq=1)
+        return
+
+    fa_type = args[0]
+    accepted_type = {
+        'starparty': get_star_party
+    }
+    if fa_type not in accepted_type:
+        await handle_get_post(message, *args, **kwargs)
+        return
+
+    _handle_func = accepted_type[fa_type]
+    await _handle_func(message, *args[1:], **kwargs)

@@ -1,3 +1,5 @@
+import re
+
 from botpy.message import GroupMessage, C2CMessage
 
 
@@ -50,3 +52,10 @@ def get_group_and_user_id(message: GroupMessage | C2CMessage, ):
     group_id = message.group_openid if isinstance(message, GroupMessage) else None
     user_id = message.author.member_openid
     return group_id, user_id
+
+
+def is_http_url(url):
+    if not url:
+        return False
+    regex = r"^(http|https)://((([A-Z0-9][A-Z0-9-]{0,61}[A-Z0-9])\.)+[A-Z]{2,6}\.?|localhost|\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(:\d+)?(/?|[/?]\S+)$"
+    return re.match(regex, url, re.IGNORECASE) is not None

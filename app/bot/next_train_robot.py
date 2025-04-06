@@ -2,9 +2,11 @@ import botpy
 from botpy import logging
 from botpy.message import GroupMessage, C2CMessage
 
+from app.events.common_events import handle_fa
 from app.events.next_train_events import handle_get_station_realtime, handle_get_default_railsystem, \
-    handle_get_station_schedule
+    handle_get_station_schedule, handle_daily_ticket
 from app.events.next_train_events import handle_get_station_realtime, handle_get_default_railsystem, handle_query_price
+from app.events.post_events import handle_post, handle_get_post
 from app.utils.command_utils import parse_command
 
 _log = logging.get_logger()
@@ -16,6 +18,9 @@ class NextTrainClient(botpy.Client):
         '默认线网': handle_get_default_railsystem,
         '时刻表': handle_get_station_schedule,
         '票价': handle_query_price,
+        '日票': handle_daily_ticket,
+        '投稿': handle_post,
+        '发': handle_fa,
     }
 
     async def on_ready(self):
@@ -29,6 +34,9 @@ class NextTrainClient(botpy.Client):
         )
 
     async def on_group_at_message_create(self, message: GroupMessage) -> None:
+        if message.content.strip() == '':
+            await message.reply(content='确认存活，还没亖')
+            return
         try:
             command, params, argv = parse_command(message.content)
             if not command:
