@@ -58,3 +58,4 @@ zopfli==0.2.3.post1
 pandas~=2.2.3
 openpyxl~=3.1.5
 aiofiles~=24.1.0
+fastapi~=0.115.12

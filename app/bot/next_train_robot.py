@@ -3,6 +3,7 @@ from botpy import logging
 from botpy.message import GroupMessage, C2CMessage
 
 from app.events.common_events import handle_fa
+from app.events.cr_events import handle_query_emu_no
 from app.events.next_train_events import handle_get_station_realtime, handle_get_default_railsystem, \
     handle_get_station_schedule, handle_daily_ticket
 from app.events.next_train_events import handle_get_station_realtime, handle_get_default_railsystem, handle_query_price
@@ -21,6 +22,7 @@ class NextTrainClient(botpy.Client):
         '日票': handle_daily_ticket,
         '投稿': handle_post,
         '发': handle_fa,
+        '担当': handle_query_emu_no
     }
 
     async def on_ready(self):
