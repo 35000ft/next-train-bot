@@ -189,14 +189,12 @@ class NasaApodFetcher(APODFetcher):
         title = title_list[0].strip() if title_list else ''
 
         # 3. 提取图片作者
-        img_author_list = tree.xpath('//center/b[contains(text(), "Image Credit:")]/following-sibling::a/text()')
+        img_author_list = tree.xpath('//center/b[contains(text(), "Credit")]/following-sibling::a/text()')
         img_author = ', '.join(img_author_list).strip() if img_author_list else ''
 
         # 4. 提取图片URL
         img_url_list = tree.xpath('//center//a/img/@src')
         img_url = img_url_list[0].strip() if img_url_list else None
-        if not img_url:
-            raise ValueError("提取APOD失败，没有找到图片URL")
         base_url = "https://apod.nasa.gov/apod/"
         img_url = urllib.parse.urljoin(base_url, img_url)
 
@@ -224,13 +222,8 @@ class NasaApodFetcher(APODFetcher):
             return self.parse_page(resp.text)
 
     async def fetch_date(self, _date: datetime) -> Optional[APOD]:
-        pass
-
-
-async def main():
-    x = BjpApodFetcher()
-    xx = await x.fetch_date(_date=datetime.fromisoformat('2022-09-29'))
-    print(xx.to_bot_reply())
-
-
-asyncio.run(main())
+        _url = f'https://apod.nasa.gov/apod/ap{_date.strftime("%y%m%d")}.html'
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(url=_url, headers=_headers)
+            resp.raise_for_status()
+            return self.parse_page(resp.text)
