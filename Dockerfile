@@ -1,12 +1,4 @@
-FROM python:3.12
-
-# 设置工作目录
-WORKDIR /app
-
-COPY . /app
-
-# 列出当前目录内容，验证文件是否正确复制
-RUN ls -al /app/app
+FROM python:3.12 as bot-base
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -28,6 +20,10 @@ ENV LANG='zh_CN.UTF-8'
 ENV LANGUAGE='zh_CN:zh:en_US:en'
 ENV LC_ALL='zh_CN.UTF-8'
 
+FROM bot-base
+
+COPY . /app
+WORKDIR /app
 # 安装项目依赖
 RUN pip install --no-cache-dir -r requirements.txt
 

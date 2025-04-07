@@ -1,3 +1,4 @@
+import os
 import uuid
 
 from async_lru import alru_cache
@@ -29,6 +30,9 @@ async def parse_to_accepted_type_code(post_type: str) -> str | None:
 
 
 async def handle_post(message: GroupMessage | C2CMessage, post_type: str, name: str, **kwargs):
+    if os.getenv('ENV') != 'prod':
+        await message.reply(content='目前运行在开发环境，不能投稿帖子哦')
+        return
     post_type_code = await parse_to_accepted_type_code(post_type)
     if not post_type_code:
         await message.reply(content=f'不支持的投稿类型:{post_type}')

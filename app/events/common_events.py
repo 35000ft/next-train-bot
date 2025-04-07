@@ -1,10 +1,11 @@
+import os
 import random
 from typing import List, Dict, Tuple
 
 from botpy import logging
 from botpy.message import GroupMessage, C2CMessage
 
-from app.events.aunu_events import get_star_party
+from app.events.aunu_events import get_star_party, handle_get_apod
 from app.events.post_events import handle_get_post
 from app.models.Railsystem import Station
 from app.schemas import RailsystemSchemas
@@ -75,7 +76,8 @@ async def handle_fa(message: GroupMessage | C2CMessage, *args, **kwargs):
 
     fa_type = args[0]
     accepted_type = {
-        'starparty': get_star_party
+        'starparty': get_star_party,
+        'apod': handle_get_apod
     }
     if fa_type not in accepted_type:
         await handle_get_post(message, *args, **kwargs)
