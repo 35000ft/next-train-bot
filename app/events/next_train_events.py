@@ -177,9 +177,6 @@ async def handle_query_price(message: GroupMessage | C2CMessage, *station_names,
         await message.reply(content='至少要传入两个车站哦')
         return
 
-    if len(station_names) == 2:
-        return
-
     max_station_len = kwargs.get('max_station_len', 6)
     if len(station_names) > max_station_len:
         await message.reply(content=f"最多支持{max_station_len - 1}段行程哦")

@@ -61,14 +61,23 @@ async def get_star_party(message: GroupMessage | C2CMessage, target_date_str: st
 
 
 @alru_cache(maxsize=6, ttl=300)
-async def get_apod(target_date_str: str = None, **kwargs) -> Optional[APOD]:
+async def get_apod(target_date: datetime = None, **kwargs) -> Optional[APOD]:
     fetcher = NasaApodFetcher() if kwargs.get('en') else BjpApodFetcher()
-    apod = await fetcher.fetch_latest()
-    return apod
+    if target_date:
+        return await fetcher.fetch_date(target_date)
+    return await fetcher.fetch_latest()
 
 
 async def handle_get_apod(message: GroupMessage | C2CMessage, target_date_str: str = None, **kwargs):
-    apod = await get_apod(target_date_str=target_date_str, **kwargs)
+    if target_date_str:
+        try:
+            target_date = parse_date(target_date_str)
+        except Exception as e:
+            await message.reply(content='不支持的日期格式')
+            return
+        apod = await get_apod(target_date=target_date, **kwargs)
+    else:
+        apod = await get_apod(**kwargs)
     if apod:
         _upload_media = await message._api.post_group_file(group_openid=message.group_openid, file_type=1,
                                                            url=apod.img_url)
@@ -80,3 +89,5 @@ async def handle_get_apod(message: GroupMessage | C2CMessage, target_date_str: s
             media=_upload_media,
             msg_seq=2,
         )
+    else:
+        await message.reply(content='找不到这个apod')
