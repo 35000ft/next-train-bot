@@ -232,5 +232,4 @@ async def main():
     xx = await x.fetch_date(_date=datetime.fromisoformat('2022-09-29'))
     print(xx.to_bot_reply())
 
-
-asyncio.run(main())
+# asyncio.run(main())
