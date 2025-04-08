@@ -50,7 +50,7 @@ async def handle_get_station_by_name(message: GroupMessage | C2CMessage, station
     if isinstance(station, list):
         content: str = f'找到多个车站，要查看哪一个？\n'
         for s in station:
-            content += f'{s.name} -r {s.system_code}\n'
+            content += f'{s.airport_name} -r {s.system_code}\n'
         await message.reply(content=content, msg_seq=next_msg_seq)
         return
 
@@ -61,7 +61,8 @@ async def handle_get_station_by_name(message: GroupMessage | C2CMessage, station
     line_dict: Dict[str, RailsystemSchemas.Line] = {x.id: x for x in _station.lines}
     # 指定线路
     if (given_line_code := kwargs.get('l')) and isinstance(given_line_code, str):
-        filtered_lines = list(filter(lambda x: x.code == given_line_code or x.name == given_line_code, _station.lines))
+        filtered_lines = list(
+            filter(lambda x: x.code == given_line_code or x.airport_name == given_line_code, _station.lines))
         if filtered_lines:
             line_dict: Dict[str, RailsystemSchemas.Line] = {x.id: x for x in filtered_lines}
 
