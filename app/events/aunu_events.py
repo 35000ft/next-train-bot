@@ -21,7 +21,7 @@ async def get_star_party(message: GroupMessage | C2CMessage, target_date_str: st
         return _upload_media
 
     async def fetch_date(__date: datetime):
-        _url = f'http://aunu.steveling.cn/{__date.strftime("%Y%m")}/{__date.day}.jpg'
+        _url = f'http://oss.steveling.cn/{__date.strftime("%Y%m")}/{__date.day}.jpg'
         _upload_media = await message._api.post_group_file(group_openid=message.group_openid, file_type=1,
                                                            url=_url)
         return _upload_media
