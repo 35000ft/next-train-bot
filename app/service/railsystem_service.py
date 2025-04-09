@@ -60,7 +60,7 @@ async def get_station_by_keyword(keyword: str, railsystem: str = None) -> List[S
             return None
 
         full_match = list(
-            filter(lambda x: x.airport_name.upper() == keyword.upper() or x.code.upper() == keyword.upper(), stations))
+            filter(lambda x: x.name.upper() == keyword.upper() or x.code.upper() == keyword.upper(), stations))
         if full_match:
             return full_match[0] if len(full_match) == 1 else full_match
 
