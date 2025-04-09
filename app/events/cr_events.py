@@ -57,6 +57,7 @@ async def handle_query_emu_no(message: GroupMessage | C2CMessage, train_no: str,
         r_content = f'未查询到{train_no}在{now.strftime("%Y-%m-%d")}的担当动车组信息，显示最近三条:\n'
         rows = [f"{x.date.strftime('%Y-%m-%d')}:{x.emu_no}" for x in emu_train_list[0:3]]
         r_content += '\n'.join(rows)
+        r_content += '\n'
         r_content += '来源:rail_re'
         await message.reply(content=r_content)
         return

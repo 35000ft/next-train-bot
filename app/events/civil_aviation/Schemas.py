@@ -17,7 +17,9 @@ class FlightInfo(BaseModel):
     shared_codes: List[str]
     airlines: Optional[str] = None
     dep_airport: str
+    dep_airport_code: Optional[str] = None
     arr_airport: str
+    arr_airport_code: Optional[str] = None
     via_airports: List[str] = []
     dep_time: Optional[str] = None
     arr_time: Optional[str] = None
@@ -29,3 +31,22 @@ class FlightInfo(BaseModel):
     status: Optional[str] = None
     carousel: Optional[str] = None
     aircraft_model: Optional[str] = None
+    stand: Optional[str] = None
+
+    def is_after(self, _date: datetime, is_dep: bool) -> bool:
+        flight_datetime = self.get_time(is_dep)
+        if not flight_datetime:
+            return False
+
+        return flight_datetime > _date
+
+    def get_time(self, is_dep) -> Optional[datetime]:
+        time_str = self.dep_time if is_dep else self.arr_time
+        if not time_str:
+            return
+        try:
+            time_obj = datetime.strptime(time_str, '%H:%M').time()
+        except ValueError:
+            return
+        flight_datetime = datetime.combine(self.date, time_obj)
+        return flight_datetime
