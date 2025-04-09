@@ -40,7 +40,8 @@ async def handle_query_flight(message: GroupMessage | C2CMessage, airport: str =
     is_dep = True if not kwargs.get('arr', False) else False
 
     try:
-        flights: List[FlightInfo] = await fetcher.fetch_flights(_form, arr=kwargs.get('arr', False), max_result=10)
+        flights: List[FlightInfo] = await fetcher.fetch_flights(_form, arr=kwargs.get('arr', False), max_result=10,
+                                                                **kwargs)
     except Exception as e:
         await message.reply(content=f'查询{airport}航班大屏异常', msg_seq=2)
         return

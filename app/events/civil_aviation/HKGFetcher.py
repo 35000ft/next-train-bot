@@ -83,7 +83,7 @@ class HKGFetcher:
 
         dep_time = data['time'] if data['time'] else None
         act_dep_time = data['status'].replace("启航", "").strip() + "(实)" if '启航' in data['status'] else None
-        estimated_dep_time = data['status'].replace("预计", "").strip() + "(预)" if '预计' in data['status'] else None
+        estimated_dep_time = data['status'].replace("预计", "").strip() if '预计' in data['status'] else None
         if not act_dep_time and estimated_dep_time:
             act_dep_time = estimated_dep_time + "(预)"
 
@@ -120,7 +120,7 @@ class HKGFetcher:
 
         arr_time = data['time'] if data['time'] else None
         act_arr_time = data['status'] if '到闸口' in data['status'] else None
-        estimated_arr_time = data['status'].replace("预计", "").strip() + "(预)" if '预计' in data['status'] else None
+        estimated_arr_time = data['status'].replace("预计", "").strip() if '预计' in data['status'] else None
         if not act_arr_time and estimated_arr_time:
             act_arr_time = estimated_arr_time + "(预)"
 
