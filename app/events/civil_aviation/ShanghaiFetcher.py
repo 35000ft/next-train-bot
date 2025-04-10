@@ -3,12 +3,13 @@ import os
 import random
 from datetime import datetime
 from typing import List
+
 from botpy import logging
 from selenium import webdriver
+from selenium.webdriver import ActionChains
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import Select
 
 from app.events.civil_aviation.Schemas import QueryFlightForm, FlightInfo
 
@@ -16,79 +17,129 @@ logger = logging.get_logger()
 
 
 class ShanghaiFetcher:
-    airport_name = '南京'
     timezone = 'Asia/Shanghai'
-    hongqiao_code = 'SHA'
-    pudong_code = 'PVG'
 
-    def parse_dep_flight_data_from_row(self, tr):
+    def self_airport_name(self):
+        pass
+
+    def self_airport_code(self):
+        pass
+
+    def is_self_airport(self, airport: str):
+        pass
+
+    # 0 <td>06:45</td>
+    # 1 <td>CA8535<br><div>
+    #   <div class="HangBan_list"><div class="List">
+    #   <marquee class="marquee" direction="left" scrollamount="3" onmouseover="this.stop()" onmouseout="this.start()">
+    #   <ul><li>NZ3729</li><li>ZH4821</li>
+    #   </ul></marquee></div></div></div>
+    # </td>
+    # 2 <td>中国国际航空公司</td>
+    # 3 <td>浦东(T2)</td>
+    # 4 <td style="display: none;">兰州<br></td>
+    # 5 <td>K</td>
+    # 6 <td style="display: none;">实际出发07:07</td>
+    # 7 <td><a href="/flights/info.html?flightno=CA8535&amp;time=06:45&amp;date=2025-04-10" target="_blank">查看</a></td>
+
+    def parse_dep_flight_data_from_row(self, tr, flight_date: datetime):
         tds = tr.find_elements(By.TAG_NAME, "td")
         data = [td.text.strip() for td in tds]
-        flight_date_str = data[0].strip()
+        dep_airport_name = data[3]
+        if not self.is_self_airport(dep_airport_name):
+            return None
+        flight_no = data[1].split('\n')[0] if data[1] else None
 
-        flight_codes = data[1].splitlines() if data[1] else []
-        flight_no = flight_codes[0] if flight_codes else ""
-        shared_codes = flight_codes[1:] if len(flight_codes) > 1 else []
-
-        flight_date = datetime.strptime(flight_date_str, '%Y-%m-%d')
-
-        dep_time = data[6] if data[6] else None
-        act_dep_time = data[8] + "(实)" if data[8] else None
-        estimated_dep_time = data[7] if data[7] else None
+        dep_time = data[0]
+        act_dep_time = data[6] if '实际' in data[6] else None
+        estimated_dep_time = data[6] if '预计' in data[6] else None
         if not act_dep_time and estimated_dep_time:
-            act_dep_time = estimated_dep_time + "(预)"
+            act_dep_time = estimated_dep_time
 
         flight_info = FlightInfo(
             flight_no=flight_no,
-            shared_codes=shared_codes,
+            shared_codes=[],
             airlines=data[2] if data[2] else None,
-            aircraft_model=data[3] if data[3] else None,
-            arr_airport=data[5],
-            via_airports=[data[4]] if data[4] else [],
-            dep_airport=self.airport_name,
+            arr_airport=data[4],
+            via_airports=[],
+            dep_airport=self.self_airport_name(),
             dep_time=dep_time,
             act_dep_time=act_dep_time,
             date=flight_date,
-            terminal=data[9] if len(data) > 9 else None,
-            gate=data[10] if len(data) > 10 else None,
-            status=data[11] if len(data) > 11 else None,
+            terminal=data[3].replace('浦东', '').replace('虹桥', '').strip('()'),
+            status=data[6],
         )
 
         return flight_info
 
-    def parse_arr_flight_data_from_row(self, tr):
+    def parse_arr_flight_data_from_row(self, tr, flight_date: datetime):
         tds = tr.find_elements(By.TAG_NAME, "td")
         data = [td.text.strip() for td in tds]
-        flight_date_str = data[0].strip()
-        flight_codes = data[1].splitlines() if data[1] else []
-        flight_no = flight_codes[0] if flight_codes else ""
-        shared_codes = flight_codes[1:] if len(flight_codes) > 1 else []
+        dep_airport_name = data[3]
+        if not self.is_self_airport(dep_airport_name):
+            return None
+        flight_no = data[1].split('\n')[0] if data[1] else None
 
-        flight_date = datetime.strptime(flight_date_str, '%Y-%m-%d')
-
-        arr_time = data[6] if data[6] else None
-        act_arr_time = data[8] if data[8] else None
-        estimated_arr_time = data[7] if data[7] else None
+        arr_time = data[0]
+        act_arr_time = data[6] if '实际' in data[6] else None
+        estimated_arr_time = data[6] if '预计' in data[6] else None
         if not act_arr_time and estimated_arr_time:
-            act_arr_time = estimated_arr_time + "(预)"
+            act_arr_time = estimated_arr_time
 
         flight_info = FlightInfo(
             flight_no=flight_no,
+            shared_codes=[],
             airlines=data[2] if data[2] else None,
-            aircraft_model=data[3] if data[3] else None,
-            shared_codes=shared_codes,
-            dep_airport=data[4],
-            via_airports=[data[5]] if data[5] else [],
-            arr_airport=self.airport_name,
-            arr_time=arr_time,
-            act_arr_time=act_arr_time,
+            arr_airport=self.self_airport_name(),
+            via_airports=[],
+            dep_airport=data[5] if data[5] else None,
+            dep_time=arr_time,
+            act_dep_time=act_arr_time,
             date=flight_date,
-            terminal=data[9] if len(data) > 9 else None,
-            carousel=data[10] if len(data) > 10 else None,
-            status=data[11] if len(data) > 11 else None,
+            terminal=data[3].replace('浦东', '').replace('虹桥', '').strip('()'),
+            status=data[6],
         )
 
         return flight_info
+
+    def parse_flight_from_jsobj(self, js_obj: dict, is_dep: bool) -> FlightInfo:
+        if is_dep:
+            return FlightInfo(
+                flight_no=js_obj['主航班号'],
+                shared_codes=[],
+                airlines=js_obj['航空公司'],
+                arr_airport=js_obj['目的地'].replace(' ', '') if js_obj.get('目的地') else '--',
+                arr_airport_code=js_obj.get('目的地代号'),
+                via_airports=[],
+                dep_airport=self.self_airport_name(),
+                dep_airport_code=self.self_airport_code(),
+                dep_time=js_obj['计划出发时间'].split(' ')[-1],
+                act_dep_time=js_obj['实际出发时间'].split(' ')[-1],
+                arr_time=js_obj['计划到达时间'].split(' ')[-1],
+                act_arr_time=js_obj['预计到达时间'].split(' ')[-1] if js_obj['预计到达时间'] else None,
+                date=datetime.fromisoformat(js_obj['时间显示']),
+                terminal=js_obj['候机楼'].replace('浦东', '').replace('虹桥', '').strip('()'),
+                status=js_obj['状态'],
+            )
+        else:
+            return FlightInfo(
+                flight_no=js_obj['主航班号'],
+                shared_codes=[],
+                airlines=js_obj['航空公司'],
+                arr_airport=self.self_airport_name(),
+                arr_airport_code=self.self_airport_name(),
+                via_airports=[],
+                dep_airport=js_obj['出发地'].replace(' ', '') if js_obj.get('出发地') else '--',
+                dep_airport_code=js_obj.get('出发地代号'),
+                dep_time=js_obj['计划出发时间'].split(' ')[-1],
+                act_dep_time=js_obj['实际出发时间'].split(' ')[-1],
+                arr_time=js_obj['计划到达时间'].split(' ')[-1],
+                act_arr_time=js_obj['预计到达时间'].split(' ')[-1] if js_obj['预计到达时间'] else None,
+                date=datetime.fromisoformat(js_obj['时间显示']),
+                terminal=js_obj['候机楼'].replace('浦东', '').replace('虹桥', '').strip('()'),
+                status=js_obj['状态'],
+                carousel=js_obj.get('行李传送带'),
+            )
 
     async def fetch_flights(self, _form: QueryFlightForm, **kwargs):
         def filter_flights(__flights: List[FlightInfo]) -> List[FlightInfo]:
@@ -96,6 +147,8 @@ class ShanghaiFetcher:
             target_aircraft_models = _form.aircraft_models
             if target_aircraft_models:
                 for x in __flights:
+                    if not x:
+                        continue
                     if x.aircraft_model in target_aircraft_models:
                         _result.append(x)
             else:
@@ -127,12 +180,6 @@ class ShanghaiFetcher:
                 cargo_btn = driver.find_element(By.XPATH, "//div[@class='flightType']//a[text()='货班']")
                 cargo_btn.click()
                 await asyncio.sleep(5)
-            if _form.flight_no:
-                flight_no_input = driver.find_element(By.ID, "txtFlightNum")
-                flight_no_input.send_keys(_form.flight_no)
-                flight_btn = driver.find_element(By.ID, "btnSearchFlightNum")
-                flight_btn.click()
-                await asyncio.sleep(3)
             if _form.airlines:
                 all_airlines_options = driver.find_elements(By.XPATH,
                                                             "//div[contains(text(),'航空公司')]/following-sibling::div[@class='drop-down']/dl/dd")
@@ -147,19 +194,32 @@ class ShanghaiFetcher:
             if _form.airport:
                 all_airport_options = driver.find_elements(By.XPATH,
                                                            "//div[@id='airCities']/following-sibling::dl/dd")
-                airports = [{'name': x.text, 'code': x.get_attribute('value')} for x in all_airport_options]
+                airports = [{'name': x.get_attribute('innerText').replace(' ', ''), 'code': x.get_attribute('value')}
+                            for x in all_airport_options]
                 for index, option in enumerate(airports):
                     if '不限' in option['name']:
                         continue
                     if _form.airport in option['name'] or option['code'].upper() == _form.airport.upper():
-                        all_airport_options[index].click()
+                        ap_option = all_airport_options[index]
+                        selector = ap_option.find_element(By.XPATH, '../..')
+                        actions = ActionChains(driver)
+                        actions.move_to_element(selector).perform()
+                        await asyncio.sleep(0.5)
+                        ap_option.click()
                         use_query = True
                         break
 
-            if use_query:
-                search_btn = driver.find_element(By.ID, "btnSearch")
-                search_btn.click()
-                await asyncio.sleep(3)
+            # 时间范围 默认从现在开始
+            driver.execute_script(f"document.getElementById('TimeMinute').value='{datetime.now().strftime('%H:%M')}'")
+
+            search_btn = driver.find_element(By.ID, "btnSearch")
+            search_btn.click()
+            await asyncio.sleep(1)
+            while True:
+                if driver.execute_script(
+                        "return window.performance.getEntriesByType('resource').filter(r => !r.responseEnd).length") == 0:
+                    break
+                await asyncio.sleep(1)
 
             if from_page := kwargs.get('from_page'):
                 try:
@@ -179,27 +239,28 @@ class ShanghaiFetcher:
                 else:
                     fetch_count += 1
                 await asyncio.sleep(random.uniform(1.0, 2.0))
-                data_table = driver.find_element(By.XPATH, "//div[@class='hangbanList']")
-                rows = driver.find_elements(By.XPATH, "//table//tr")
-                if len(rows) <= 1:
-                    break
-                # 排除表头
-                rows = rows[1:]
                 _flight = []
-                if is_dep:
-                    _flight = [self.parse_dep_flight_data_from_row(x) for x in rows]
-                else:
-                    _flight = [self.parse_arr_flight_data_from_row(x) for x in rows]
-                print(f'page fetched, url:{driver.current_url}')
+                flight_list = driver.execute_script("return this.app.flightList;")
+                _flight = [self.parse_flight_from_jsobj(x, is_dep) for x in flight_list]
+                # rows = driver.find_elements(By.XPATH, "//div[@id='flight']//tr")
+                # if len(rows) <= 1:
+                #     break
+                # rows = rows[1:]
+                # flight_date = datetime.now()
+                # if is_dep:
+                #     _flight = [self.parse_dep_flight_data_from_row(x, flight_date) for x in rows]
+                # else:
+                #     _flight = [self.parse_arr_flight_data_from_row(x, flight_date) for x in rows]
+                logger.info(f'page fetched')
                 flights.extend(filter_flights(_flight))
                 if max_result and len(flights) >= max_result:
                     logger.info(f'arrive max result number, break.')
                     return flights[0:max_result]
                 try:
-                    next_page_btn = driver.find_element(By.XPATH, "//ul[@class='pagination']/li/a[text()='»']")
+                    next_page_btn = driver.find_element(By.XPATH, "//button[@class='btn-next']")
                     next_page_btn.click()
                 except Exception as e:
-                    print('no next page')
+                    logger.warn('no next page')
                     break
 
             return flights
@@ -207,9 +268,37 @@ class ShanghaiFetcher:
             logger.exception(e)
             _d = driver.get_screenshot_as_png()
             err_img_path = os.path.join(os.getenv('WORK_DIR'), 'data/temp',
-                                        f"{self.airport_name}_fetcher_error_{datetime.now().strftime('%Y_%m_%d_%H%M%s')}.png")
+                                        f"{self.self_airport_name()}_fetcher_error_{datetime.now().strftime('%Y_%m_%d_%H%M%s')}.png")
             with open(err_img_path, "wb") as f:
                 f.write(_d)
             raise e
         finally:
             driver.quit()
+
+
+class PVGFetcher(ShanghaiFetcher):
+    airport_name = '上海浦东'
+    airport_code = 'PVG'
+
+    def is_self_airport(self, airport: str):
+        return '浦东' in airport or 'PVG' == airport.upper()
+
+    def self_airport_name(self):
+        return self.airport_name
+
+    def self_airport_code(self):
+        return self.airport_code
+
+
+class SHAFetcher(ShanghaiFetcher):
+    airport_name = '上海虹桥'
+    airport_code = 'SHA'
+
+    def is_self_airport(self, airport: str):
+        return '虹桥' in airport or 'SHA' == airport.upper()
+
+    def self_airport_name(self):
+        return self.airport_name
+
+    def self_airport_code(self):
+        return self.airport_code

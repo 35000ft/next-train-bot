@@ -7,6 +7,7 @@ from tabulate import tabulate
 from app.events.civil_aviation.HKGFetcher import HKGFetcher
 from app.events.civil_aviation.NKGFetcher import NKGFetcher
 from app.events.civil_aviation.Schemas import QueryFlightForm, FlightInfo
+from app.events.civil_aviation.ShanghaiFetcher import SHAFetcher, PVGFetcher
 
 logger = logging.get_logger()
 
@@ -18,6 +19,11 @@ def get_airport_fetcher(code: str):
         'NKG': lambda: NKGFetcher(),
         '香港': lambda: HKGFetcher(),
         'HKG': lambda: HKGFetcher(),
+        'SHA': lambda: SHAFetcher(),
+        'PVG': lambda: PVGFetcher(),
+        '浦东': lambda: PVGFetcher(),
+        '虹桥': lambda: SHAFetcher(),
+        '上海': lambda: SHAFetcher(),
     }
     return _dict[code]()
 
