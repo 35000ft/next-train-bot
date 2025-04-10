@@ -12,6 +12,7 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 
 from app.events.civil_aviation.Schemas import QueryFlightForm, FlightInfo
+from app.utils.time_utils import get_now
 
 logger = logging.get_logger()
 
@@ -209,8 +210,9 @@ class ShanghaiFetcher:
                         use_query = True
                         break
 
+            now = get_now(480)
             # 时间范围 默认从现在开始
-            driver.execute_script(f"document.getElementById('TimeMinute').value='{datetime.now().strftime('%H:%M')}'")
+            driver.execute_script(f"document.getElementById('TimeMinute').value='{now.strftime('%H:%M')}'")
 
             search_btn = driver.find_element(By.ID, "btnSearch")
             search_btn.click()
