@@ -36,9 +36,16 @@ class HKGFetcher:
     airports: dict = None
     fetch_lock = asyncio.Lock()
 
-    async def parse_airport(self, iata_code: str) -> Optional[Airport]:
+    async def parse_airport(self, iata_code: str) -> Airport:
+        def build_not_found_airport() -> Airport:
+            return Airport(code=iata_code, description='unknown', country='unknown')
+
         if self.airports:
-            return self.airports.get(iata_code)
+            ap = self.airports.get(iata_code)
+            if not ap:
+                logger.warning(f'Airport {iata_code} not found')
+                return build_not_found_airport()
+            return ap
         async with self.fetch_lock:
             async with httpx.AsyncClient() as client:
                 url = 'https://www.hongkongairport.com/flightinfo-rest/rest/airports'
@@ -49,7 +56,11 @@ class HKGFetcher:
                             data
                             if x['description'] and x['code']]
                 self.airports = {x.code: x for x in airports}
-                return self.airports.get(iata_code)
+                ap = self.airports.get(iata_code)
+                if not ap:
+                    logger.warning(f'Airport {iata_code} not found')
+                    return build_not_found_airport()
+                return ap
 
     # {
     #     "time": "00:05",
@@ -68,6 +79,9 @@ class HKGFetcher:
     #     "aisle": "A",
     #     "gate": "61"
     # }
+    async def parse_airport_from_codes(self, codes: List[str]) -> List[Airport]:
+        temp = [await self.parse_airport(code) for code in codes]
+        return [x for x in temp if x]
 
     async def parse_dep_flight_data_from_row(self, data: dict, flight_date: datetime):
         flights = data['flight']
@@ -77,9 +91,13 @@ class HKGFetcher:
         airlines = main_flight['airline']
         shared_codes = [x['no'].replace(' ', '') for x in flights[1:]] if len(flights) > 1 else []
 
-        destination: List[Airport] = [await self.parse_airport(code) for code in data['destination']]
-        airport = ' / '.join([x.description for x in destination if x])
-        airport_code = destination[-1].code
+        destination: List[Airport] = await self.parse_airport_from_codes(data['destination'])
+        if destination:
+            airport = ' / '.join([x.description for x in destination if x])
+            airport_code = destination[-1].code
+        else:
+            airport_code = '--'
+            airport = 'UNKNOWN'
 
         dep_time = data['time'] if data['time'] else None
         act_dep_time = data['status'].replace("启航", "").strip() + "(实)" if '启航' in data['status'] else None
@@ -114,9 +132,13 @@ class HKGFetcher:
         airlines = main_flight['airline']
         shared_codes = [x['no'].replace(' ', '') for x in flights[1:]] if len(flights) > 1 else []
 
-        destination: List[Airport] = [await self.parse_airport(code) for code in data['origin']]
-        airport = ' / '.join([x.description for x in destination if x])
-        airport_code = destination[-1].code
+        destination: List[Airport] = await self.parse_airport_from_codes(data['origin'])
+        if destination:
+            airport = ' / '.join([x.description for x in destination if x])
+            airport_code = destination[-1].code
+        else:
+            airport_code = '--'
+            airport = 'UNKNOWN'
 
         arr_time = data['time'] if data['time'] else None
         act_arr_time = data['status'] if '到闸口' in data['status'] else None
