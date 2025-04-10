@@ -4,16 +4,29 @@ from botpy import logging
 from botpy.message import GroupMessage, C2CMessage
 from tabulate import tabulate
 
+from app.events.civil_aviation.HKGFetcher import HKGFetcher
 from app.events.civil_aviation.NKGFetcher import NKGFetcher
 from app.events.civil_aviation.Schemas import QueryFlightForm, FlightInfo
 
 logger = logging.get_logger()
 
 
+def get_airport_fetcher(code: str):
+    code = code.upper()
+    _dict = {
+        '南京': lambda: NKGFetcher(),
+        'NKG': lambda: NKGFetcher(),
+        '香港': lambda: HKGFetcher(),
+        'HKG': lambda: HKGFetcher(),
+    }
+    return _dict[code]()
+
+
 async def handle_query_flight(message: GroupMessage | C2CMessage, airport: str = '南京', **kwargs):
     await message.reply(content=f'正在查询{airport}航班大屏中...', msg_seq=1)
-    if airport != '南京':
-        await message.reply(content='不支持的机场', msg_seq=2)
+    fetcher = get_airport_fetcher(airport)
+    if not fetcher:
+        await message.reply(content="不支持该机场哦")
         return
     aircraft_models_str: str | None = kwargs.get('at', None)
     aircraft_models = []
@@ -25,9 +38,10 @@ async def handle_query_flight(message: GroupMessage | C2CMessage, airport: str =
                             aircraft_models=aircraft_models)
     logger.info(f'_form:{_form}')
     is_dep = True if not kwargs.get('arr', False) else False
-    fetcher = NKGFetcher()
+
     try:
-        flights: List[FlightInfo] = await fetcher.fetch_flights(_form, arr=kwargs.get('arr', False), max_result=10)
+        flights: List[FlightInfo] = await fetcher.fetch_flights(_form, arr=kwargs.get('arr', False), max_result=10,
+                                                                **kwargs)
     except Exception as e:
         await message.reply(content=f'查询{airport}航班大屏异常', msg_seq=2)
         return
