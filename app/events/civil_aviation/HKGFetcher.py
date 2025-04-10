@@ -99,9 +99,9 @@ class HKGFetcher:
             dep_time=dep_time,
             act_dep_time=act_dep_time,
             date=flight_date,
-            terminal=data['terminal'] if data['terminal'] else None,
-            gate=data['gate'] if data['gate'] else None,
-            status=data['status'] if data['status'] else None,
+            terminal=data['terminal'] if data.get('terminal') else None,
+            gate=data['gate'] if data.get('gate') else None,
+            status=data['status'] if data.get('status') else None,
         )
 
         return flight_info
@@ -136,10 +136,10 @@ class HKGFetcher:
             arr_time=arr_time,
             act_arr_time=act_arr_time,
             date=flight_date,
-            terminal=data['terminal'] if data['terminal'] else None,
-            carousel=data['baggage'] if data['baggage'] else None,
-            status=data['status'] if data['status'] else None,
-            stand=data['stand'] if data['stand'] else None,
+            terminal=data['terminal'] if data.get('terminal') else None,
+            carousel=data['baggage'] if data.get('baggage') else None,
+            status=data['status'] if data.get('status') else None,
+            stand=data['stand'] if data.get('stand') else None,
         )
 
         return flight_info
