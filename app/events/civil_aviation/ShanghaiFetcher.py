@@ -2,7 +2,7 @@ import asyncio
 import os
 import random
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 
 from botpy import logging
 from selenium import webdriver
@@ -103,8 +103,25 @@ class ShanghaiFetcher:
 
         return flight_info
 
-    def parse_flight_from_jsobj(self, js_obj: dict, is_dep: bool) -> FlightInfo:
+    def calc_direction(self, is_dep: bool, is_international: bool = False):
         if is_dep:
+            if is_international:
+                return '3'
+            else:
+                return '1'
+        else:
+            if is_international:
+                return '4'
+            else:
+                return '2'
+
+    def parse_flight_from_jsobj(self, js_obj: dict, is_dep: bool) -> Optional[FlightInfo]:
+        def format_flight_time(time_str) -> str:
+            return time_str.split(' ')[-1][0:5]
+
+        if is_dep:
+            if not self.is_self_airport(js_obj['出发地']):
+                return None
             return FlightInfo(
                 flight_no=js_obj['主航班号'],
                 shared_codes=[],
@@ -114,15 +131,17 @@ class ShanghaiFetcher:
                 via_airports=[],
                 dep_airport=self.self_airport_name(),
                 dep_airport_code=self.self_airport_code(),
-                dep_time=js_obj['计划出发时间'].split(' ')[-1],
-                act_dep_time=js_obj['实际出发时间'].split(' ')[-1],
-                arr_time=js_obj['计划到达时间'].split(' ')[-1],
-                act_arr_time=js_obj['预计到达时间'].split(' ')[-1] if js_obj['预计到达时间'] else None,
+                dep_time=format_flight_time('计划出发时间'),
+                act_dep_time=format_flight_time('实际出发时间'),
+                arr_time=format_flight_time('计划到达时间'),
+                act_arr_time=format_flight_time('预计到达时间') if js_obj.get('预计到达时间') else None,
                 date=datetime.fromisoformat(js_obj['时间显示']),
                 terminal=js_obj['候机楼'].replace('浦东', '').replace('虹桥', '').strip('()'),
                 status=js_obj['状态'],
             )
         else:
+            if not self.is_self_airport(js_obj['目的地']):
+                return None
             return FlightInfo(
                 flight_no=js_obj['主航班号'],
                 shared_codes=[],
@@ -132,10 +151,10 @@ class ShanghaiFetcher:
                 via_airports=[],
                 dep_airport=js_obj['出发地'].replace(' ', '') if js_obj.get('出发地') else '--',
                 dep_airport_code=js_obj.get('出发地代号'),
-                dep_time=js_obj['计划出发时间'].split(' ')[-1],
-                act_dep_time=js_obj['实际出发时间'].split(' ')[-1],
-                arr_time=js_obj['计划到达时间'].split(' ')[-1],
-                act_arr_time=js_obj['预计到达时间'].split(' ')[-1] if js_obj['预计到达时间'] else None,
+                dep_time=format_flight_time('计划出发时间'),
+                act_dep_time=format_flight_time('实际出发时间'),
+                arr_time=format_flight_time('计划到达时间'),
+                act_arr_time=format_flight_time('预计到达时间') if js_obj.get('预计到达时间') else None,
                 date=datetime.fromisoformat(js_obj['时间显示']),
                 terminal=js_obj['候机楼'].replace('浦东', '').replace('虹桥', '').strip('()'),
                 status=js_obj['状态'],
@@ -144,17 +163,12 @@ class ShanghaiFetcher:
 
     async def fetch_flights(self, _form: QueryFlightForm, **kwargs):
         def filter_flights(__flights: List[FlightInfo]) -> List[FlightInfo]:
-            _result: List[FlightInfo] = []
-            target_aircraft_models = _form.aircraft_models
-            if target_aircraft_models:
-                for x in __flights:
-                    if not x:
-                        continue
-                    if x.aircraft_model in target_aircraft_models:
-                        _result.append(x)
-            else:
-                return __flights
-            return _result
+            if _form.flight_no:
+                __flights = filter(lambda x: _form.flight_no.upper() in x.flight_no, __flights)
+            if _form.airlines:
+                __flights = filter(lambda x: _form.airlines in x.airlines, __flights)
+
+            return list(__flights)
 
         is_dep = True if not kwargs.get('arr') else False
         url: str = 'https://www.shairport.com/flights/index.html'
@@ -209,7 +223,8 @@ class ShanghaiFetcher:
                         ap_option.click()
                         use_query = True
                         break
-
+            # 设置 国内出发/到达 国际出发/到达
+            driver.execute_script(f"this.app.direction='{self.calc_direction(is_dep, kwargs.get('int', False))}'")
             now = get_now(480)
             # 时间范围 默认从现在开始
             driver.execute_script(f"document.getElementById('TimeMinute').value='{now.strftime('%H:%M')}'")
