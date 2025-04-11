@@ -1,7 +1,12 @@
-from app.config import get_db_session
-from sqlalchemy import select, or_, exists
+import json
+from typing import Optional
 
-from app.models.Railsystem import PersonalConfig
+from async_lru import alru_cache
+from sqlalchemy import select, or_
+
+from app.config import get_db_session
+from app.models.Railsystem import PersonalConfig, Station
+from app.schemas import RailsystemSchemas
 
 
 async def get_default_railsystem_code(group_id: str, user_id: str) -> str | None:
@@ -62,3 +67,25 @@ async def set_default_railsystem_code(group_id: str | None, user_id: str, railsy
                 pc_instance.params = railsystem_code
 
             await session.commit()
+
+
+@alru_cache(maxsize=64, ttl=60)
+async def get_station_by_user_station_alias(alias_name: str, user_id: str) -> RailsystemSchemas.Station | bool:
+    async with get_db_session() as session:
+        stmt = select(PersonalConfig).where(PersonalConfig.status == 1,
+                                            PersonalConfig.user_id == user_id,
+                                            PersonalConfig.category_key == 'STATION_ALIAS',
+                                            PersonalConfig.name == alias_name)
+        result = await session.execute(stmt)
+        _p: PersonalConfig = result.scalar()
+        if _p:
+            _station_dict = json.loads(_p.params)
+            return RailsystemSchemas.Station(**_station_dict)
+
+
+async def add_station_name_alias(alias_name: str, user_id: str, station: RailsystemSchemas.Station):
+    async with get_db_session() as session:
+        p = PersonalConfig(user_id=user_id, name=alias_name, category_key='STATION_ALIAS', status=1,
+                           params=station.model_dump_json())
+        session.add(p)
+        await session.commit()

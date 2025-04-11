@@ -6,13 +6,16 @@ from tabulate import tabulate
 
 from app.events.common_events import handle_get_station_by_name
 from app.events.daily_ticket_events import handle_njmtr_daily_ticket
+from app.models.Railsystem import Station
 from app.schemas import RailsystemSchemas
 from app.schemas.RailsystemSchemas import TrainInfo
 from app.service.file_service import cache_uploaded_file, get_cached_uploaded_file
-from app.service.personaliz_service import get_default_railsystem_code, set_default_railsystem_code
+from app.service.personalize_service import get_default_railsystem_code, set_default_railsystem_code, \
+    get_station_by_user_station_alias, add_station_name_alias
 from app.service.realtime_service import get_station_realtime, get_schedule_image
 from app.utils import time_utils
 from app.utils.command_utils import get_group_and_user_id
+from app.utils.forbidden_words import forbidden_word_filter
 from app.utils.message_utils import post_group_base64_file
 from app.utils.time_utils import get_now, end_of_date_timestamp
 from app.service.ticket_price_service import query_ticket_price
@@ -50,19 +53,14 @@ def filter_latest_train_for_each_terminal(train_info_list: List[TrainInfo], **kw
     return result
 
 
-async def handle_get_station_realtime(message: GroupMessage | C2CMessage, station_name: str, **kwargs):
-    await message.reply(content=f'查询{station_name}实时列车中, 请稍后', msg_seq=1)
-    r: Tuple[RailsystemSchemas.Station, Dict[str, RailsystemSchemas.Line]] = \
-        await (handle_get_station_by_name(message, station_name, msg_seq=1, **kwargs))
-    if not r:
-        return
-    station, line_dict = r
+async def handle_get_station_realtime_core(message, station: RailsystemSchemas.Station,
+                                           line_dict: Dict[str, RailsystemSchemas.Line]):
     train_info_dict: Dict[str, List[TrainInfo]] = await get_station_realtime(station.id,
                                                                              line_ids=list(line_dict.keys()))
     if not train_info_dict:
-        await message.reply(content=f'获取 {station_name} 实时列车失败', msg_seq=2)
+        await message.reply(content=f'获取 {station.name} 实时列车失败', msg_seq=2)
         return
-    content = f'车站:{station_name} 实时列车 更新于:{time_utils.get_now(get_offset_from_str(station.timezone)).strftime("%H:%M:%S")}\n'
+    content = f'车站:{station.name} 实时列车 更新于:{time_utils.get_now(get_offset_from_str(station.timezone)).strftime("%H:%M:%S")}\n'
 
     for line_id, train_info_list in train_info_dict.items():
         line = line_dict.get(line_id)
@@ -87,6 +85,27 @@ async def handle_get_station_realtime(message: GroupMessage | C2CMessage, statio
             content += '\n'
 
     await message.reply(content=content, msg_seq=2)
+
+
+@forbidden_word_filter("station_name")
+async def handle_get_station_realtime(message: GroupMessage | C2CMessage, station_name: str, **kwargs):
+    await message.reply(content=f'查询{station_name}实时列车中, 请稍后', msg_seq=1)
+    r: Tuple[RailsystemSchemas.Station, Dict[str, RailsystemSchemas.Line]] = \
+        await (handle_get_station_by_name(message, station_name, msg_seq=1, **kwargs))
+    station, line_dict = r
+
+    await handle_get_station_realtime_core(message, station, line_dict)
+
+
+async def handle_get_station_realtime_alias_mode(message: GroupMessage | C2CMessage, station_name: str, **kwargs):
+    group_id, user_id = get_group_and_user_id(message)
+    station = await get_station_by_user_station_alias(alias_name=station_name, user_id=user_id)
+    if not station:
+        await handle_get_station_realtime(message, station_name, **kwargs)
+        return
+    logger.info(f"别名:{station.name}->{station.name}")
+    line_dict: Dict[str, RailsystemSchemas.Line] = {x.id: x for x in station.lines}
+    await handle_get_station_realtime_core(message, station, line_dict=line_dict)
 
 
 async def handle_get_default_railsystem(message: GroupMessage | C2CMessage, railsystem_to_set: str = None, **kwargs):
@@ -224,3 +243,21 @@ async def handle_daily_ticket(message: GroupMessage | C2CMessage, station_name: 
         return await handle_njmtr_daily_ticket(message, station, **kwargs)
     else:
         await message.reply(content=f'线网:{railsystem_code} 不支持日票哦')
+
+
+@forbidden_word_filter("station_name", "alias")
+async def handle_set_alias_station_name(message: GroupMessage | C2CMessage, station_name: str, alias: str, **kwargs):
+    group_id, user_id = get_group_and_user_id(message)
+    r: Tuple[RailsystemSchemas.Station, Dict[str, RailsystemSchemas.Line]] = \
+        await (handle_get_station_by_name(message, station_name, msg_seq=1, **kwargs))
+    station, line_dict = r
+    existed_alias_station: Station = await get_station_by_user_station_alias(alias, user_id)
+    if existed_alias_station:
+        await message.reply(
+            content=f'别名重复，{alias} 已指向 车站:{existed_alias_station.name} {existed_alias_station.system_code}')
+        return
+    try:
+        await add_station_name_alias(user_id=user_id, alias_name=alias, station=station)
+        await message.reply(content=f'已添加车站别名:{alias} -> {station.name}，仅对你生效')
+    except Exception as e:
+        logger.exception(e)

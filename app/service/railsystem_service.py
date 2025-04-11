@@ -46,6 +46,13 @@ async def get_station_by_names(name_list: List[str], railsystem: str = None) -> 
         return r_result
 
 
+async def get_station_by_id(station_id) -> Optional[Station]:
+    async with get_db_session() as session:
+        stmt = select(Station).where(Station.id == station_id)
+        result = await session.execute(stmt)
+        return result.scalar()
+
+
 async def get_station_by_keyword(keyword: str, railsystem: str = None) -> List[Station] | Optional[Station]:
     async with get_db_session() as session:
         stmt = select(Station).where(or_(Station.name.ilike(f'%{keyword}%'), Station.code == keyword.upper()))

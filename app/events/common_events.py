@@ -9,7 +9,7 @@ from app.events.aunu_events import get_star_party, handle_get_apod
 from app.events.post_events import handle_get_post
 from app.models.Railsystem import Station
 from app.schemas import RailsystemSchemas
-from app.service.personaliz_service import get_default_railsystem_code
+from app.service.personalize_service import get_default_railsystem_code
 from app.service.railsystem_service import get_station_detail_byid, get_station_by_keyword
 from app.utils.command_utils import get_group_and_user_id
 

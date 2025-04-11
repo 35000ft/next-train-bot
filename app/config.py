@@ -17,6 +17,8 @@ async_session = sessionmaker(
     expire_on_commit=False
 )
 
+forbidden_words = os.getenv("FORBIDDEN_WORDS").split(',') if os.getenv("FORBIDDEN_WORDS") else []
+
 
 class Config:
     TOKEN = os.getenv("BOT_TOKEN")

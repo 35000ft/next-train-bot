@@ -1,4 +1,4 @@
-FROM python:3.12 as bot-base
+FROM python:3.12-bullseye as bot-base
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
