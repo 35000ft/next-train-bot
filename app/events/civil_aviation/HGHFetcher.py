@@ -1,21 +1,13 @@
 import asyncio
-import os
 import random
-import urllib.parse
 from datetime import datetime
-from typing import List, Optional
+from typing import List
 
 import httpx
 from botpy import logging
 from lxml import etree
-from pydantic import BaseModel
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import Select
 
-from app.events.civil_aviation.Schemas import QueryFlightForm, FlightInfo
+from app.events.civil_aviation.Schemas import QueryFlightForm, FlightInfo, filter_flight_by_aircraft_models
 from app.utils.time_utils import get_now
 
 logger = logging.get_logger()
@@ -33,78 +25,184 @@ class HGHFetcher:
     fetch_lock = asyncio.Lock()
     baseurl = 'https://www.hzairport.com'
 
-    def parse_dep_flight_data_from_row(self, data: dict, flight_date: datetime):
-        flights = data['flight']
-        main_flight = flights[0]
+    # <div class="timetable_item clearfix">
+    #   <div class="station fl">
+    #       <p>CA715</p><p>SC131</p>
+    #   </div>
+    #   <div class="number fl">A320</div>
+    #   <div class="company fl">中国国际航空</div>
+    #   <div class="stop fl">曼谷</div>
+    #   <div class="stop fl"></div>
+    #   <div class="stop fl"></div>
+    #   <div class="time fl">04-10 23:50</div>
+    #   <div class="time fl"></div>
+    #   <div class="time fl">04-11 00:11</div>
+    #   <div class="import fl">463</div>
+    #   <div class="end fr"><span>起飞</span></div>
+    # </div>
+    def parse_dep_flight_data_from_row(self, div):
+        # Use relative XPath expression to select child div elements
+        divs = div.xpath("./div")
 
-        flight_no = main_flight['no'].replace(' ', '').strip()
-        airlines = main_flight['airline']
-        shared_codes = [x['no'].replace(' ', '') for x in flights[1:]] if len(flights) > 1 else []
+        # Initialize a dictionary to store values keyed by a meaningful identifier.
+        # This example assumes that each div has a class that uniquely identifies its role.
+        data = {}
+        for d in divs:
+            # Get the class attribute to use as a key
+            class_attr = d.get("class", "").strip()
+            if class_attr:
+                # Use the first class as the key (e.g., "station", "number", "company", "stop", etc.)
+                key = class_attr.split()[0]
+                # Extract text; using itertext() handles nested tags
+                text = "".join(d.itertext()).strip()
+                # If the key already exists and it is "stop", convert it into a list
+                if key == "stop":
+                    if len(text) > 0:
+                        data.setdefault(key, []).append(text)
+                elif key == 'station':
+                    flight_nos = d.xpath("./p/text()")
+                    if flight_nos:
+                        data['flight_no'] = flight_nos[0]
+                        data['shared_codes'] = flight_nos[1:]
+                else:
+                    data[key] = text
+        stops = data.get("stop", [])
+        if stops:
+            arr_airport = stops[0]  # First stop as destination airport
+            via_airports = stops[1:]  # Remaining stops as via airports (could be empty if not present)
+        else:
+            arr_airport = None
+            via_airports = []
 
-        dep_time = data['time'] if data['time'] else None
-        act_dep_time = data['status'].replace("启航", "").strip() + "(实)" if '启航' in data['status'] else None
-        estimated_dep_time = data['status'].replace("预计", "").strip() if '预计' in data['status'] else None
-        if not act_dep_time and estimated_dep_time:
-            act_dep_time = estimated_dep_time + "(预)"
+        # --------------------------
+        times = div.xpath(".//div[contains(@class, 'time')]/text()")
+        times = [t.strip() for t in times if t.strip()]
+
+        # Scheduled departure time: Parse to get flight_date and departure time.
+        dep_time_raw = times[0] if times else ""
+        flight_date: datetime
+        dep_time = None
+        if dep_time_raw:
+            parts = dep_time_raw.split()
+            if len(parts) == 2:
+                flight_date_str, dep_time = parts
+                flight_date = datetime.fromisoformat(f'{datetime.now().year}-{flight_date_str.strip()}')
+            else:
+                # If format is unexpected, assign the full string to dep_time (or handle error)
+                dep_time = dep_time_raw
+
+        # Actual departure time: Also extract only the hh:mm part if available.
+        act_dep_time = None
+        if len(times) > 1 and times[1]:
+            act_parts = times[1].split()
+            if len(act_parts) == 2:
+                # For actual departure time we keep only the time part.
+                act_dep_time = act_parts[1]
+            else:
+                act_dep_time = times[1]
 
         flight_info = FlightInfo(
-            flight_no=flight_no,
-            shared_codes=shared_codes,
-            airlines=airlines,
-            aircraft_model='--',
-            arr_airport='airport',
-            arr_airport_code='airport_code',
-            via_airports=[],
+            flight_no=data.get("flight_no"),
+            shared_codes=data.get("shared_codes", []),
+            airlines=data.get("company"),
+            aircraft_model=data.get("number"),
+            arr_airport=arr_airport,
+            via_airports=via_airports,
             dep_airport=self.airport_name,
+            dep_airport_code=self.airport_code,
             dep_time=dep_time,
             act_dep_time=act_dep_time,
-            date=flight_date,
-            terminal=data['terminal'] if data.get('terminal') else None,
-            gate=data['gate'] if data.get('gate') else None,
-            status=data['status'] if data.get('status') else None,
+            date=flight_date,  # flight_date derived from departure time string
+            gate=data.get("import"),
+            status=data.get("end")  # Adjust based on how status is represented in your HTML
         )
 
         return flight_info
 
-    def parse_arr_flight_data_from_row(self, data: dict, flight_date: datetime):
-        flights = data['flight']
-        main_flight = flights[0]
+    def parse_arr_flight_data_from_row(self, div):
+        # Use relative XPath expression to select child div elements.
+        divs = div.xpath("./div")
 
-        flight_no = main_flight['no'].replace(' ', '').strip()
-        airlines = main_flight['airline']
-        shared_codes = [x['no'].replace(' ', '') for x in flights[1:]] if len(flights) > 1 else []
+        # Initialize a dictionary to store values keyed by a meaningful identifier.
+        data = {}
+        for d in divs:
+            class_attr = d.get("class", "").strip()
+            if class_attr:
+                key = class_attr.split()[0]
+                text = "".join(d.itertext()).strip()
 
-        arr_time = data['time'] if data['time'] else None
-        act_arr_time = data['status'] if '到闸口' in data['status'] else None
-        estimated_arr_time = data['status'].replace("预计", "").strip() if '预计' in data['status'] else None
-        if not act_arr_time and estimated_arr_time:
-            act_arr_time = estimated_arr_time + "(预)"
+                if key == "stop":
+                    if len(text) > 0:
+                        data.setdefault(key, []).append(text)
+                elif key == 'station':
+                    flight_nos = d.xpath("./p/text()")
+                    if flight_nos:
+                        data['flight_no'] = flight_nos[0]
+                        data['shared_codes'] = flight_nos[1:]
+                else:
+                    # For keys like "stop" in arrival we typically don't need a list; use text directly.
+                    data[key] = text
+
+        stops = data.get("stop", [])
+        if stops:
+            dep_airport = stops[0]  # First stop as destination airport
+            via_airports = stops[1:]  # Remaining stops as via airports (could be empty if not present)
+        else:
+            dep_airport = '未知'
+            via_airports = []
+
+        # 计划到达时间 变更到达时间 实际到达时间
+        times = div.xpath(".//div[contains(@class, 'time')]/text()")
+        times = [t.strip() for t in times if t.strip()]
+
+        arr_time_raw = times[0] if times else ""
+        flight_date = None
+        arr_time = None
+        if arr_time_raw:
+            parts = arr_time_raw.split()
+            if len(parts) == 2:
+                flight_date_str, arr_time = parts
+                # Construct flight_date using the current year and the MM-DD from flight_date_str.
+                try:
+                    flight_date = datetime.fromisoformat(f'{datetime.now().year}-{flight_date_str.strip()}')
+                except Exception as e:
+                    # Handle parsing error if any, e.g., by logging or setting flight_date to None.
+                    flight_date = None
+            else:
+                arr_time = arr_time_raw
+
+        # Extract the actual arrival time, if available.
+        act_arr_time = None
+        if len(times) > 2 and times[2]:
+            act_parts = times[2].split()
+            act_arr_time = act_parts[1] + '(实)'
+        if not act_arr_time and len(times) > 1 and times[1]:
+            act_parts = times[1].split()
+            act_arr_time = act_parts[1] + '(预)'
 
         flight_info = FlightInfo(
-            flight_no=flight_no,
-            shared_codes=shared_codes,
-            airlines=airlines,
-            aircraft_model='--',
-            dep_airport='airport',
-            dep_airport_code='airport_code',
-            via_airports=[],
+            flight_no=data.get("flight_no"),
+            shared_codes=data.get("shared_codes", []),
+            airlines=data.get("company"),
+            aircraft_model=data.get("number"),
+            dep_airport=dep_airport,
             arr_airport=self.airport_name,
+            arr_airport_code=self.airport_code,
+            via_airports=via_airports,
             arr_time=arr_time,
             act_arr_time=act_arr_time,
             date=flight_date,
-            terminal=data['terminal'] if data.get('terminal') else None,
-            carousel=data['baggage'] if data.get('baggage') else None,
-            status=data['status'] if data.get('status') else None,
-            stand=data['stand'] if data.get('stand') else None,
         )
-
         return flight_info
 
-    # TODO
-    def parse_page(self, _html_string: str) -> List[FlightInfo]:
+    def parse_page(self, _html_string: str, is_dep: bool) -> List[FlightInfo]:
         tree = etree.HTML(_html_string)
         rows = tree.xpath("//div[contains(@class,'timetable_item')]")
-        return []
+        if is_dep:
+            flights = [self.parse_dep_flight_data_from_row(x) for x in rows]
+        else:
+            flights = [self.parse_arr_flight_data_from_row(x) for x in rows]
+        return flights
 
     def estimate_page(self, _time: datetime, max_page: int) -> int:
         # 当前小时分钟秒转为“从今天4:00开始的分钟数”
@@ -139,29 +237,10 @@ class HGHFetcher:
         return ''.join(parts)
 
     async def fetch_flights(self, _form: QueryFlightForm, **kwargs):
+        # todo
         def filter_flights(__flights: List[FlightInfo]) -> List[FlightInfo]:
-            _result: List[FlightInfo] = __flights
-            if target_airport := _form.airport:
-                if is_dep:
-                    _result = filter(
-                        lambda x: target_airport in x.arr_airport or (
-                                x.arr_airport_code and target_airport.upper() == x.arr_airport_code),
-                        list(_result))
-                else:
-                    _result = filter(
-                        lambda x: target_airport in x.dep_airport or (
-                                x.dep_airport_code and target_airport.upper() == x.dep_airport_code),
-                        list(_result))
-            if _form.flight_no:
-                _result = filter(lambda x: _form.flight_no in x.flight_no if x.flight_no else False, list(_result))
-            if _form.airlines:
-                _result = filter(lambda x: _form.airlines in x.airlines if x.flight_no else False, list(_result))
-
-            if _form.at_time:
-                _result = filter(lambda x: x.is_after(_form.at_time, is_dep), list(_result))
-            else:
-                _result = filter(lambda x: x.is_after(now, is_dep), list(_result))
-            return list(_result)
+            _result: List[FlightInfo] = filter_flight_by_aircraft_models(__flights, _form.aircraft_models)
+            return _result
 
         is_dep = True if not kwargs.get('arr') else False
         first_url: str = 'https://www.hzairport.com/flight/index.html' if is_dep \
@@ -201,7 +280,6 @@ class HGHFetcher:
 
             now = get_now(480)
             cur_page = self.estimate_page(now, max_page)
-            logger.info(f'curpage:{cur_page}')
             max_fetch_page = kwargs.get('max_fetch_page', 3)
             fetch_count = 0
             while True:
@@ -217,9 +295,9 @@ class HGHFetcher:
                         async with httpx.AsyncClient() as client:
                             _resp = await client.get(_url)
                             _resp.raise_for_status()
-                            _flights = self.parse_page(_resp.text)
+                            _flights = self.parse_page(_resp.text, is_dep)
                     else:
-                        _flights = self.parse_page(resp.text)
+                        _flights = self.parse_page(resp.text, is_dep)
 
                     flights.extend(filter_flights(_flights))
                     if len(flights) >= max_result:
@@ -228,7 +306,7 @@ class HGHFetcher:
                         cur_page += 1
                     else:
                         break
-                    
+
                     await asyncio.sleep(random.uniform(1.0, 2.0))
                 except Exception as e:
                     logger.exception(e)

@@ -50,3 +50,14 @@ class FlightInfo(BaseModel):
             return
         flight_datetime = datetime.combine(self.date, time_obj)
         return flight_datetime
+
+
+def filter_flight_by_aircraft_models(_flights: List[FlightInfo], aircraft_models: List[str]) -> List[FlightInfo]:
+    _result: List[FlightInfo] = []
+    if aircraft_models:
+        for x in _flights:
+            if x.aircraft_model in aircraft_models:
+                _result.append(x)
+    else:
+        return _flights
+    return _result

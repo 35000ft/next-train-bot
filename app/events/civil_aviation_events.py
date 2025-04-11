@@ -4,6 +4,7 @@ from botpy import logging
 from botpy.message import GroupMessage, C2CMessage
 from tabulate import tabulate
 
+from app.events.civil_aviation.HGHFetcher import HGHFetcher
 from app.events.civil_aviation.HKGFetcher import HKGFetcher
 from app.events.civil_aviation.NKGFetcher import NKGFetcher
 from app.events.civil_aviation.Schemas import QueryFlightForm, FlightInfo
@@ -16,6 +17,7 @@ def get_airport_fetcher(code: str):
     code = code.upper()
     _dict = {
         '南京': lambda: NKGFetcher(),
+        '禄口': lambda: NKGFetcher(),
         'NKG': lambda: NKGFetcher(),
         '香港': lambda: HKGFetcher(),
         'HKG': lambda: HKGFetcher(),
@@ -24,6 +26,9 @@ def get_airport_fetcher(code: str):
         '浦东': lambda: PVGFetcher(),
         '虹桥': lambda: SHAFetcher(),
         '上海': lambda: SHAFetcher(),
+        '杭州': lambda: HGHFetcher(),
+        '萧山': lambda: HGHFetcher(),
+        'HGH': lambda: HGHFetcher(),
     }
     return _dict[code]()
 
