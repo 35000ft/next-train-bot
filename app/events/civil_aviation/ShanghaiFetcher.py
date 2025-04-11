@@ -163,6 +163,7 @@ class ShanghaiFetcher:
 
     async def fetch_flights(self, _form: QueryFlightForm, **kwargs):
         def filter_flights(__flights: List[FlightInfo]) -> List[FlightInfo]:
+            __flights = [x for x in __flights if x is not None]
             if _form.flight_no:
                 __flights = filter(lambda x: _form.flight_no.upper() in x.flight_no, __flights)
             if _form.airlines:
