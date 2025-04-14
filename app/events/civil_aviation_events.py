@@ -4,6 +4,7 @@ from botpy import logging
 from botpy.message import GroupMessage, C2CMessage
 from tabulate import tabulate
 
+from app.events.civil_aviation.CANFetcher import CANFetcher
 from app.events.civil_aviation.HGHFetcher import HGHFetcher
 from app.events.civil_aviation.HKGFetcher import HKGFetcher
 from app.events.civil_aviation.NKGFetcher import NKGFetcher
@@ -29,6 +30,9 @@ def get_airport_fetcher(code: str):
         '杭州': lambda: HGHFetcher(),
         '萧山': lambda: HGHFetcher(),
         'HGH': lambda: HGHFetcher(),
+        '广州': lambda: CANFetcher(),
+        'CAN': lambda: CANFetcher(),
+        '广州白云': lambda: CANFetcher(),
     }
     return _dict[code]()
 
