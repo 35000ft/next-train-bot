@@ -12,6 +12,7 @@ from app.schemas import RailsystemSchemas
 from app.service.personalize_service import get_default_railsystem_code
 from app.service.railsystem_service import get_station_detail_byid, get_station_by_keyword
 from app.utils.command_utils import get_group_and_user_id
+from app.utils.exceptions import BusinessException
 
 logger = logging.get_logger()
 
@@ -25,8 +26,8 @@ async def handle_get_station_by_name(message: GroupMessage | C2CMessage, station
     logger.info(f'group_id: {group_id} user_id: {user_id}')
     station: List[Station] | Station = await get_station_by_keyword(station_name, railsystem)
     if not station:
-        await message.reply(content=f'暂不支持 {station_name} 这个车站哦', msg_seq=next_msg_seq)
-        return
+        raise BusinessException(
+            f'暂不支持 {station_name} 这个车站哦。如已设置别名，请通过以下指令查询:\n/{kwargs.get("command_name", "<指令名>")}a {station_name}')
 
     # a:查看全部结果 不过滤线网
     if not kwargs.get('a') and isinstance(station, list):
@@ -51,8 +52,7 @@ async def handle_get_station_by_name(message: GroupMessage | C2CMessage, station
         content: str = f'找到多个车站，要查看哪一个？\n'
         for s in station:
             content += f'{s.name} -r {s.system_code}\n'
-        await message.reply(content=content, msg_seq=next_msg_seq)
-        return
+        raise BusinessException(content)
 
     _station: RailsystemSchemas.Station = await get_station_detail_byid(station.id)
     if not _station:

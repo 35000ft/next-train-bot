@@ -20,6 +20,8 @@ async def exception_handler(message: GroupMessage | C2CMessage, exc: Exception):
     if isinstance(exc, TypeError):
         logger.exception(exc)
         await message.reply(content='指令有误')
+    elif isinstance(exc, BusinessException):
+        await message.reply(content=exc.message, msg_seq=10)
     else:
         logger.exception(exc)
         await message.reply(content='指令无效哦', msg_seq=message.msg_seq)
