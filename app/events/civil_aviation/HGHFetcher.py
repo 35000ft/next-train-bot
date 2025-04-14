@@ -8,6 +8,7 @@ from botpy import logging
 from lxml import etree
 
 from app.events.civil_aviation.Schemas import QueryFlightForm, FlightInfo, filter_flight_by_aircraft_models
+from app.events.civil_aviation.utils.util import estimate_page_by_time
 from app.utils.time_utils import get_now
 
 logger = logging.get_logger()
@@ -24,6 +25,8 @@ class HGHFetcher:
     airports: dict = None
     fetch_lock = asyncio.Lock()
     baseurl = 'https://www.hzairport.com'
+    dep_flight_ratios = (0.02352, 0.270588, 0.2823529, 0.2823529, 0.1411764)
+    arr_flight_ratios = (0.07335, 0.08557, 0.30318, 0.29339, 0.24449)
 
     # <div class="timetable_item clearfix">
     #   <div class="station fl">
@@ -204,25 +207,10 @@ class HGHFetcher:
             flights = [self.parse_arr_flight_data_from_row(x) for x in rows]
         return flights
 
-    def estimate_page(self, _time: datetime, max_page: int) -> int:
-        # 当前小时分钟秒转为“从今天4:00开始的分钟数”
-        total_minutes_per_day = 24 * 60
-        minutes_per_page = total_minutes_per_day / max_page
-
-        # 当前时间的分钟数（从0点起）
-        current_minutes = _time.hour * 60 + _time.minute + _time.second / 60
-
-        # 从4:00起的分钟数（小于4:00的当作加上24小时）
-        minutes_since_4am = current_minutes - 4 * 60
-        if minutes_since_4am < 0:
-            minutes_since_4am += total_minutes_per_day
-
-        # 计算页码
-        page = int(minutes_since_4am / minutes_per_page) + 1
-        page = min(max(page, 1), max_page)
-        if page > 1:
-            return page - 1
-        return page
+    def estimate_page(self, _time: datetime, max_page: int, is_dep: bool) -> int:
+        # todo day_offset
+        _ratios = self.dep_flight_ratios if is_dep else self.arr_flight_ratios
+        return estimate_page_by_time(_time, max_page=max_page, ratios=_ratios, day_offset=0)
 
     def build_page_url(self, _params: dict, page: int, is_dep: bool) -> str:
         base_uri = '/flight/index/' if is_dep else '/flight/arrive/'
@@ -278,8 +266,8 @@ class HGHFetcher:
             else:
                 max_page: int = int(page_nums[-2].strip('..').strip())
 
-            now = get_now(480)
-            cur_page = self.estimate_page(now, max_page)
+            target_time: datetime = _form.at_time or get_now(480)
+            cur_page = self.estimate_page(target_time, max_page, is_dep)
             max_fetch_page = kwargs.get('max_fetch_page', 3)
             fetch_count = 0
             while True:
@@ -298,6 +286,14 @@ class HGHFetcher:
                             _flights = self.parse_page(_resp.text, is_dep)
                     else:
                         _flights = self.parse_page(resp.text, is_dep)
+
+                    if _flights:
+                        # 该页最后一个航班的时间如果在目标时间之前则从该页下一页开始查起
+                        last_flight = max(_flights, key=lambda flight: flight.get_time(is_dep))
+                        if cur_page < max_page and not last_flight.is_after(target_time, is_dep):
+                            fetch_count = 0
+                            cur_page = cur_page + 1
+                            continue
 
                     flights.extend(filter_flights(_flights))
                     if len(flights) >= max_result:
