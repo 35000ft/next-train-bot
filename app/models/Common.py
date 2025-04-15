@@ -1,9 +1,9 @@
+import datetime as dt
 import time
 from datetime import datetime
-import datetime as dt
-from sqlalchemy import Column, Integer, String, DateTime, Table, ForeignKey, BigInteger, Text, TIMESTAMP, func, \
-    UniqueConstraint
-from sqlalchemy.orm import declarative_base, relationship
+
+from sqlalchemy import Column, Integer, String, Text, TIMESTAMP
+from sqlalchemy.orm import declarative_base
 
 
 class RobotConfig(declarative_base()):
