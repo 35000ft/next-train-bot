@@ -16,6 +16,7 @@ class FlightInfo(BaseModel):
     flight_no: str
     shared_codes: List[str]
     airlines: Optional[str] = None
+    airlines_code: Optional[str] = None
     dep_airport: str
     dep_airport_code: Optional[str] = None
     arr_airport: str

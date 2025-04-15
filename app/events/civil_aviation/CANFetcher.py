@@ -129,39 +129,54 @@ class CANFetcher:
             return list(_result)
 
         is_dep = True if not kwargs.get('arr') else False
-        params = self.build_list_params(_form, is_dep, cur_page=1)
 
         # TODO
         max_fetch_page = kwargs.get('max_fetch_page', 3)
         fetched_page_count = 0
 
-        async def handle_response(_j_obj):
-            _flights: List[FlightInfo] = []
+        async def parse_flights(_flight_list: List[dict]):
+            __flights: List[FlightInfo] = []
 
-            _list = _j_obj['data'].get('list', [])
             if is_dep:
-                _flights.extend([await self.parse_dep_flight_data_from_row(x) for x in _list])
+                __flights.extend([await self.parse_dep_flight_data_from_row(x) for x in _flight_list])
             else:
-                _flights.extend([await self.parse_arr_flight_data_from_row(x) for x in _list])
+                __flights.extend([await self.parse_arr_flight_data_from_row(x) for x in _flight_list])
 
-            _flights = filter_flights(_flights)
+            __flights = filter_flights(__flights)
             max_result = kwargs.get('max_result', 20)
-            _flights = _flights[0:max_result]
-            flights_sorted = sorted(_flights, key=lambda flight: flight.get_time(is_dep))
+            __flights = __flights[0:max_result]
+            flights_sorted = sorted(__flights, key=lambda flight: flight.get_time(is_dep))
             return flights_sorted
 
         try:
-            logger.info(f'fetching url:{self.api_url}')
             flights: List[FlightInfo] = []
-            async with httpx.AsyncClient() as client:
-                resp = await client.post(self.api_url, headers=headers, json=params)
-                resp.raise_for_status()
-                j_obj = resp.json()
-                total_page = j_obj.get('pages', 1)
-                cur_page = j_obj.get('pageNum', 1)
-                while cur_page <= total_page and fetched_page_count < max_fetch_page:
-                    flights.extend(await handle_response(j_obj))
+            total_page = 1
+            cur_page = 1
+            while cur_page <= total_page and fetched_page_count < max_fetch_page:
+                async with httpx.AsyncClient() as client:
+                    if _form.airport or _form.flight_no:
+                        # 搜索
+                        _url = self.search_url
+                        params = self.build_search_params(_form, is_dep, cur_page=1)
+                        logger.info(f'fetching url:{_url}')
+                        resp = await client.post(_url, headers=headers, json=params)
+                        resp.raise_for_status()
+                        flight_list = resp.json().get('data', [])
+                    else:
+                        _url = self.api_url
+                        params = self.build_list_params(_form, is_dep, cur_page=1)
+                        logger.info(f'fetching url:{_url}')
+                        resp = await client.post(_url, headers=headers, json=params)
+                        resp.raise_for_status()
+                        j_obj = resp.json().get('data', {})
+                        flight_list = j_obj.get('list', [])
+                        total_page = j_obj.get('pages', 1)
+                        cur_page = j_obj.get('pageNum', 1)
+                    _flights = await parse_flights(flight_list)
+                    _flights = filter_flights(_flights)
+                    flights.extend(_flights)
                     cur_page += 1
                     fetched_page_count += 1
+            return flights
         except Exception as e:
             logger.exception(e)
