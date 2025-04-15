@@ -12,6 +12,7 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 
 from app.events.civil_aviation.Schemas import QueryFlightForm, FlightInfo
+from app.events.civil_aviation.utils.filters import flight_filter
 from app.utils.time_utils import get_now
 
 logger = logging.get_logger()
@@ -163,13 +164,8 @@ class ShanghaiFetcher:
 
     async def fetch_flights(self, _form: QueryFlightForm, **kwargs):
         def filter_flights(__flights: List[FlightInfo]) -> List[FlightInfo]:
-            __flights = [x for x in __flights if x is not None]
-            if _form.flight_no:
-                __flights = filter(lambda x: _form.flight_no.upper() in x.flight_no, __flights)
-            if _form.airlines:
-                __flights = filter(lambda x: _form.airlines in x.airlines, __flights)
-
-            return list(__flights)
+            return flight_filter(flights, flight_no=_form.flight_no, airlines=_form.airlines,
+                                 airlines_codes=_form.airlines_codes)
 
         is_dep = True if not kwargs.get('arr') else False
         url: str = 'https://www.shairport.com/flights/index.html'
@@ -188,7 +184,6 @@ class ShanghaiFetcher:
         driver = webdriver.Chrome(service=service, options=chrome_options)
         flights = []
         try:
-            use_query = False
             logger.info(f'loading url:{url}')
             driver.get(url)
             logger.info(f'page loaded, url:{url}')
@@ -205,7 +200,6 @@ class ShanghaiFetcher:
                         continue
                     if _form.airlines in option['name'] or option['code'].upper() == _form.airlines.upper():
                         all_airlines_options[index].click()
-                        use_query = True
                         break
             if _form.airport:
                 all_airport_options = driver.find_elements(By.XPATH,
@@ -222,7 +216,6 @@ class ShanghaiFetcher:
                         actions.move_to_element(selector).perform()
                         await asyncio.sleep(0.5)
                         ap_option.click()
-                        use_query = True
                         break
             # 设置 国内出发/到达 国际出发/到达
             driver.execute_script(f"this.app.direction='{self.calc_direction(is_dep, kwargs.get('int', False))}'")
@@ -260,15 +253,6 @@ class ShanghaiFetcher:
                 _flight = []
                 flight_list = driver.execute_script("return this.app.flightList;")
                 _flight = [self.parse_flight_from_jsobj(x, is_dep) for x in flight_list]
-                # rows = driver.find_elements(By.XPATH, "//div[@id='flight']//tr")
-                # if len(rows) <= 1:
-                #     break
-                # rows = rows[1:]
-                # flight_date = datetime.now()
-                # if is_dep:
-                #     _flight = [self.parse_dep_flight_data_from_row(x, flight_date) for x in rows]
-                # else:
-                #     _flight = [self.parse_arr_flight_data_from_row(x, flight_date) for x in rows]
                 logger.info(f'page fetched')
                 flights.extend(filter_flights(_flight))
                 if max_result and len(flights) >= max_result:

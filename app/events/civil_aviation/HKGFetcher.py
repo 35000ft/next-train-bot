@@ -1,19 +1,13 @@
 import asyncio
-import os
-import random
 from datetime import datetime
-from typing import List, Optional
+from typing import List
 
 import httpx
 from botpy import logging
 from pydantic import BaseModel
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import Select
 
 from app.events.civil_aviation.Schemas import QueryFlightForm, FlightInfo
+from app.events.civil_aviation.utils.filters import flight_filter
 from app.utils.time_utils import get_now
 
 logger = logging.get_logger()
@@ -170,23 +164,10 @@ class HKGFetcher:
 
     async def fetch_flights(self, _form: QueryFlightForm, **kwargs):
         def filter_flights(__flights: List[FlightInfo]) -> List[FlightInfo]:
-            _result: List[FlightInfo] = __flights
-            if target_airport := _form.airport:
-                if is_dep:
-                    _result = filter(
-                        lambda x: target_airport in x.arr_airport or (
-                                x.arr_airport_code and target_airport.upper() == x.arr_airport_code),
-                        list(_result))
-                else:
-                    _result = filter(
-                        lambda x: target_airport in x.dep_airport or (
-                                x.dep_airport_code and target_airport.upper() == x.dep_airport_code),
-                        list(_result))
-            if _form.flight_no:
-                _result = filter(lambda x: _form.flight_no in x.flight_no if x.flight_no else False, list(_result))
-            if _form.airlines:
-                _result = filter(lambda x: _form.airlines in x.airlines if x.flight_no else False, list(_result))
-
+            _result: List[FlightInfo] = flight_filter(flights, flight_no=_form.flight_no, airlines=_form.airlines,
+                                                      airlines_codes=_form.airlines_codes,
+                                                      dep_airport=is_dep and _form.airport_name,
+                                                      arr_airport=(not is_dep) and _form.airport_name, )
             if _form.at_time:
                 _result = filter(lambda x: x.is_after(_form.at_time, is_dep), list(_result))
             else:

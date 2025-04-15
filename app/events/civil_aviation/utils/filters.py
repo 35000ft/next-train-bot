@@ -15,7 +15,7 @@ skyteam_alliance = ["SU", "AR", "AM", "UX", "AF", "CI", "MU", "DL", "GA", "KQ",
 oneworld_alliance = ["AS", "AA", "BA", "CX", "FJ", "AY", "IB", "JL", "MH", "QF",
                      "QR", "AT", "RJ", "UL"]
 
-no1_level = ['CX', 'BA', 'QR', 'QF', 'AY', 'AF', 'SQ', 'EK', 'EY', 'DL']
+民航一区 = ['CX', 'BA', 'QR', 'QF', 'AY', 'AF', 'SQ', 'EK', 'EY', 'DL']
 
 # 海航
 hna = ["HU", "GS", "8L", "JD", "PN", "UQ", "FU", "GX", "9H", "Y8", "GT", "HX", ]
@@ -24,7 +24,7 @@ alliance_map = {
     "oneworld": oneworld_alliance,
     "star_alliance": star_alliance,
     "skyteam": skyteam_alliance,
-    "民航一区": no1_level,
+    "民航一区": 民航一区,
     "hna": hna,
 }
 
@@ -69,6 +69,21 @@ def map_airlines_alliance(airlines_code: str):
         return 'other'
 
 
+def filter_airport(flights: List[FlightInfo], is_dep: bool, target_airport: str):
+    _result = []
+    if is_dep:
+        _result = filter(
+            lambda x: target_airport in x.arr_airport or (
+                    x.arr_airport_code and target_airport.upper() == x.arr_airport_code),
+            list(_result))
+    else:
+        _result = filter(
+            lambda x: target_airport in x.dep_airport or (
+                    x.dep_airport_code and target_airport.upper() == x.dep_airport_code),
+            list(_result))
+    return _result
+
+
 def filter_alliance(flights: List[FlightInfo], alliance_name: str) -> List[FlightInfo]:
     if not flights:
         return flights
@@ -105,7 +120,15 @@ def filter_airlines_by_name(flights: List[FlightInfo], airlines_name: str) -> Li
     return [x for x in flights if x.airlines in airlines_name]
 
 
+def filter_flight_no(flights: List[FlightInfo], flight_no: str) -> List[FlightInfo]:
+    if not flight_no:
+        return flights
+    flight_no = flight_no.upper()
+    return list(filter(lambda x: flight_no in x.flight_no, flights))
+
+
 def flight_filter(flights: List[FlightInfo], **kwargs) -> List[FlightInfo]:
+    __flights = [x for x in flights if x is not None]
     if alliance_name := kwargs.get('alliance'):
         flights = filter_alliance(flights, alliance_name)
     if aircraft_model := kwargs.get('aircraft_models'):
@@ -114,4 +137,10 @@ def flight_filter(flights: List[FlightInfo], **kwargs) -> List[FlightInfo]:
         flights = filter_airlines_by_code(flights, airlines_codes)
     if airlines := kwargs.get('airlines'):
         flights = filter_airlines_by_name(flights, airlines)
+    if flight_no := kwargs.get('flight_no'):
+        flights = filter_flight_no(flights, flight_no)
+    if target_airport := kwargs.get('dep_airport'):
+        flights = filter_airport(flights, target_airport=target_airport, is_dep=True)
+    if target_airport := kwargs.get('arr_airport'):
+        flights = filter_airport(flights, target_airport=target_airport, is_dep=False)
     return flights
