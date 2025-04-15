@@ -10,6 +10,8 @@ class QueryFlightForm(BaseModel):
     airport: Optional[str] = None
     at_time: Optional[datetime] = None
     aircraft_models: List[str] = []
+    airlines_codes: List[str] = []
+    alliance: Optional[str] = None
 
 
 class FlightInfo(BaseModel):
@@ -33,6 +35,7 @@ class FlightInfo(BaseModel):
     carousel: Optional[str] = None
     aircraft_model: Optional[str] = None
     stand: Optional[str] = None
+    airlines_alliance: Optional[str] = None
 
     def is_after(self, _date: datetime, is_dep: bool) -> bool:
         flight_datetime = self.get_time(is_dep)
@@ -51,14 +54,3 @@ class FlightInfo(BaseModel):
             return
         flight_datetime = datetime.combine(self.date, time_obj)
         return flight_datetime
-
-
-def filter_flight_by_aircraft_models(_flights: List[FlightInfo], aircraft_models: List[str]) -> List[FlightInfo]:
-    _result: List[FlightInfo] = []
-    if aircraft_models:
-        for x in _flights:
-            if x.aircraft_model in aircraft_models:
-                _result.append(x)
-    else:
-        return _flights
-    return _result

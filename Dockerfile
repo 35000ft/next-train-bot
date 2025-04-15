@@ -20,12 +20,14 @@ ENV LANG='zh_CN.UTF-8'
 ENV LANGUAGE='zh_CN:zh:en_US:en'
 ENV LC_ALL='zh_CN.UTF-8'
 
+# 安装项目依赖
+RUN pip install --no-cache-dir -r requirements.txt
+
 FROM bot-base
 
 COPY . /app
 WORKDIR /app
-# 安装项目依赖
-RUN pip install --no-cache-dir -r requirements.txt
+
 
 RUN mkdir -p /app/data \
     && mkdir -p /app/log \

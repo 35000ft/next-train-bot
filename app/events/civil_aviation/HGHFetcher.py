@@ -7,7 +7,8 @@ import httpx
 from botpy import logging
 from lxml import etree
 
-from app.events.civil_aviation.Schemas import QueryFlightForm, FlightInfo, filter_flight_by_aircraft_models
+from app.events.civil_aviation.Schemas import QueryFlightForm, FlightInfo
+from app.events.civil_aviation.utils.filters import flight_filter
 from app.events.civil_aviation.utils.util import estimate_page_by_time
 from app.utils.time_utils import get_now
 
@@ -227,8 +228,7 @@ class HGHFetcher:
     async def fetch_flights(self, _form: QueryFlightForm, **kwargs):
         # todo
         def filter_flights(__flights: List[FlightInfo]) -> List[FlightInfo]:
-            _result: List[FlightInfo] = filter_flight_by_aircraft_models(__flights, _form.aircraft_models)
-            return _result
+            return flight_filter(__flights, aircraft_models=_form.aircraft_models)
 
         is_dep = True if not kwargs.get('arr') else False
         first_url: str = 'https://www.hzairport.com/flight/index.html' if is_dep \

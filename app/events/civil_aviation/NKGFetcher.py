@@ -11,6 +11,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import Select
 
 from app.events.civil_aviation.Schemas import QueryFlightForm, FlightInfo
+from app.events.civil_aviation.utils.filters import flight_filter
 
 logger = logging.get_logger()
 
@@ -93,15 +94,7 @@ class NKGFetcher:
 
     async def fetch_flights(self, _form: QueryFlightForm, **kwargs):
         def filter_flights(__flights: List[FlightInfo]) -> List[FlightInfo]:
-            _result: List[FlightInfo] = []
-            target_aircraft_models = _form.aircraft_models
-            if target_aircraft_models:
-                for x in __flights:
-                    if x.aircraft_model in target_aircraft_models:
-                        _result.append(x)
-            else:
-                return __flights
-            return _result
+            return flight_filter(__flights, aircraft_models=_form.aircraft_models)
 
         is_dep = True if not kwargs.get('arr') else False
         url: str = 'https://www.njiairport.com/cn/flightInformation1.html' if is_dep \

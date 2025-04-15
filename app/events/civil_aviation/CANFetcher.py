@@ -7,6 +7,7 @@ from botpy import logging
 from pydantic import BaseModel
 
 from app.events.civil_aviation.Schemas import QueryFlightForm, FlightInfo
+from app.events.civil_aviation.utils.filters import flight_filter
 
 logger = logging.get_logger()
 
@@ -122,36 +123,24 @@ class CANFetcher:
         }
 
     async def fetch_flights(self, _form: QueryFlightForm, **kwargs):
-        def filter_flights(__flights: List[FlightInfo]) -> List[FlightInfo]:
-            _result: List[FlightInfo] = __flights
-            if _form.airlines:
-                _result = filter(lambda x: _form.airlines in x.airlines if x.flight_no else False, list(_result))
-            return list(_result)
 
         is_dep = True if not kwargs.get('arr') else False
 
-        # TODO
         max_fetch_page = kwargs.get('max_fetch_page', 3)
         fetched_page_count = 0
 
         async def parse_flights(_flight_list: List[dict]):
             __flights: List[FlightInfo] = []
-
             if is_dep:
-                __flights.extend([await self.parse_dep_flight_data_from_row(x) for x in _flight_list])
+                return [await self.parse_dep_flight_data_from_row(x) for x in _flight_list]
             else:
-                __flights.extend([await self.parse_arr_flight_data_from_row(x) for x in _flight_list])
-
-            __flights = filter_flights(__flights)
-            max_result = kwargs.get('max_result', 20)
-            __flights = __flights[0:max_result]
-            flights_sorted = sorted(__flights, key=lambda flight: flight.get_time(is_dep))
-            return flights_sorted
+                return [await self.parse_arr_flight_data_from_row(x) for x in _flight_list]
 
         try:
             flights: List[FlightInfo] = []
             total_page = 1
             cur_page = 1
+            max_result = kwargs.get('max_result', 20)
             while cur_page <= total_page and fetched_page_count < max_fetch_page:
                 async with httpx.AsyncClient() as client:
                     if _form.airport or _form.flight_no:
@@ -164,7 +153,7 @@ class CANFetcher:
                         flight_list = resp.json().get('data', [])
                     else:
                         _url = self.api_url
-                        params = self.build_list_params(_form, is_dep, cur_page=1)
+                        params = self.build_list_params(_form, is_dep, cur_page=cur_page)
                         logger.info(f'fetching url:{_url}')
                         resp = await client.post(_url, headers=headers, json=params)
                         resp.raise_for_status()
@@ -173,10 +162,16 @@ class CANFetcher:
                         total_page = j_obj.get('pages', 1)
                         cur_page = j_obj.get('pageNum', 1)
                     _flights = await parse_flights(flight_list)
-                    _flights = filter_flights(_flights)
+                    _flights = flight_filter(_flights, airlines_codes=_form.airlines_codes, airlines=_form.airlines,
+                                             aircraft_models=_form.aircraft_models, alliance=_form.alliance)
                     flights.extend(_flights)
+                    if len(flights) >= max_result:
+                        break
                     cur_page += 1
                     fetched_page_count += 1
+
+            flights = sorted(flights, key=lambda flight: flight.get_time(is_dep))
+            flights = flights[0:max_result]
             return flights
         except Exception as e:
             logger.exception(e)

@@ -43,13 +43,19 @@ async def handle_query_flight(message: GroupMessage | C2CMessage, airport: str =
     if not fetcher:
         await message.reply(content="不支持该机场哦")
         return
-    aircraft_models_str: str | None = kwargs.get('at', None)
     aircraft_models = []
-    if aircraft_models_str:
+    if aircraft_models_str := kwargs.get('at'):
         aircraft_models = aircraft_models_str.strip().split(',')
         aircraft_models = [x.upper().strip() for x in aircraft_models]
 
+    airlines_codes = []
+    if airlines_codes_str := kwargs.get('al-codes'):
+        airlines_codes = airlines_codes_str.strip().split(',')
+        airlines_codes = [x.upper().strip() for x in airlines_codes]
+
     _form = QueryFlightForm(flight_no=kwargs.get('no'), airport=kwargs.get('ap'), airlines=kwargs.get('al'),
+                            airlines_codes=airlines_codes,
+                            alliance=kwargs.get('alliance'),
                             aircraft_models=aircraft_models)
     logger.info(f'_form:{_form}')
     is_dep = True if not kwargs.get('arr', False) else False
