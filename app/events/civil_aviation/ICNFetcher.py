@@ -30,6 +30,15 @@ class ICNFetcher:
     def now_time(self):
         return get_now(get_offset_from_str(self.timezone))
 
+    def extract_airport(self, data):
+        if (ap := data.get("airportName1")) and len(ap) >= 0:
+            return ap
+        if (ap := data.get("airportName1En")) and len(ap) >= 0:
+            return ap
+        if (ap := data.get("p1code")) and len(ap) >= 0:
+            return ap
+        return '未知'
+
     async def parse_dep_flight_data_from_row(self, data: dict):
         code_share = data.get('codeshare')
         if code_share == 'Slave':
@@ -55,7 +64,7 @@ class ICNFetcher:
             shared_codes=[],
             airlines=data.get('airlineNameCh', data.get('flightCarrier')),
             airlines_code=data.get('flightCarrier'),
-            arr_airport=data.get('airportName1', data.get('p1code', '未知')),
+            arr_airport=self.extract_airport(data),
             arr_airport_code=data.get('p1code'),
             via_airports=via_airports,
             dep_airport=self.airport_name,
@@ -98,7 +107,7 @@ class ICNFetcher:
             arr_airport=self.airport_name,
             arr_airport_code=self.airport_code,
             via_airports=via_airports,
-            dep_airport=data.get('airportName1', data.get('p1code', '未知')),
+            dep_airport=self.extract_airport(data),
             dep_airport_code=data.get('p1code'),
             arr_time=arr_time,
             act_arr_time=act_arr_time,
@@ -135,7 +144,7 @@ class ICNFetcher:
             "daySel": today_date_str,
             "fromTime": _now.replace(minute=0, second=0).strftime("%H%M"),
             "toTime": _now.replace(minute=59, second=0).strftime("%H%M"),
-            "airport": kwargs.get("airport"),
+            "airport": _form.airport or "",
             "airline": kwargs.get("airline"),
             "airplane": _form.flight_no or ""
         }
@@ -156,7 +165,7 @@ class ICNFetcher:
             async with httpx.AsyncClient() as client:
                 _url = self.dep_api_url if is_dep else self.arr_api_url
                 params = self.build_search_params(_form)
-                logger.info(f'fetching url:{_url}')
+                logger.info(f'fetching url:{_url} {params}')
                 resp = await client.post(_url, headers=headers, data=params)
                 resp.raise_for_status()
                 raw_flight_list = resp.json().get('scheduleList', [])
