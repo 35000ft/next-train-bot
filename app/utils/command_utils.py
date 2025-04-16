@@ -1,6 +1,11 @@
 import re
 
+from botpy import logging
 from botpy.message import GroupMessage, C2CMessage
+
+from app.utils.exceptions import BusinessException
+
+logger = logging.get_logger()
 
 
 def parse_command(input_string):
@@ -33,21 +38,6 @@ def parse_command(input_string):
     return _command, seq_params, named_params
 
 
-# def parse_command(message_text: str):
-#     if not message_text:
-#         return None, None
-#     _split = message_text.strip().strip('/').split(' ')
-#     _split = [x.strip() for x in _split]
-#
-#     if len(_split) == 0:
-#         return None, None
-#
-#     command = _split[0]
-#     argv = [x.strip('-') for x in _split[1:] if x.startswith('-')]
-#     params = [x for x in _split[1:] if not x.startswith('-')]
-#     return command, params, argv
-#
-
 def get_group_and_user_id(message: GroupMessage | C2CMessage, ):
     group_id = message.group_openid if isinstance(message, GroupMessage) else None
     user_id = message.author.member_openid
@@ -59,3 +49,27 @@ def is_http_url(url):
         return False
     regex = r"^(http|https)://((([A-Z0-9][A-Z0-9-]{0,61}[A-Z0-9])\.)+[A-Z]{2,6}\.?|localhost|\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(:\d+)?(/?|[/?]\S+)$"
     return re.match(regex, url, re.IGNORECASE) is not None
+
+
+async def save_context_command(user_id: str, group_id: str, option_dict: dict, **kwargs):
+    cache = kwargs.get('cache')
+    if not option_dict:
+        logger.warning("Can not set empty option_dict")
+        return
+    key = user_id
+    if isinstance(group_id, str):
+        key = key + "-" + group_id
+    await cache.set(key, option_dict)
+
+
+async def find_context_command(user_id: str, group_id: str, option_str: str, **kwargs):
+    cache = kwargs.get('cache')
+    key = user_id
+    if isinstance(group_id, str):
+        key = key + "-" + group_id
+    options: dict = await cache.get(key)
+    command = options.get(option_str.strip())
+    if command:
+        return command
+    else:
+        raise BusinessException('指令有误')

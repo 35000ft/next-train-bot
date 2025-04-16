@@ -10,7 +10,8 @@ from app.events.next_train_events import handle_get_station_schedule, handle_dai
     handle_set_alias_station_name, \
     handle_get_station_realtime_alias_mode
 from app.events.post_events import handle_post
-from app.utils.command_utils import parse_command
+from app.utils.AsyncLRUCache import AsyncLRUCache
+from app.utils.command_utils import parse_command, find_context_command, get_group_and_user_id
 from app.utils.exceptions import exception_handler
 
 logger = logging.get_logger()
@@ -30,6 +31,7 @@ class NextTrainClient(botpy.Client):
         '机场大屏': handle_query_flight,
         '车站别名': handle_set_alias_station_name,
     }
+    cache = AsyncLRUCache(maxsize=128)
 
     async def on_ready(self):
         logger.info(f"robot「{self.robot.name}」 on_ready!")
@@ -52,8 +54,17 @@ class NextTrainClient(botpy.Client):
                 return
 
             if handler := self.command_dict.get(command):
-                await handler(message, *params, **argv)
+                await handler(message, *params, **argv, _bot=self)
             else:
+                if message.content:
+                    # 尝试获取上下文
+                    group_id, user_id = get_group_and_user_id(message)
+                    new_command = await find_context_command(user_id=user_id, group_id=group_id,
+                                                             option_str=message.content, cache=self.cache)
+                    logger.info(f"上下文指令:{new_command}")
+                    message.content = new_command
+                    await self.on_group_at_message_create(message)
+                    return
                 await message.reply(content='目前不支持该指令哦~')
         except Exception as e:
             await exception_handler(message, e)
