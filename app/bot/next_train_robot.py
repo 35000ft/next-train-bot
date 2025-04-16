@@ -45,7 +45,6 @@ class NextTrainClient(botpy.Client):
         if message.content.strip() == '':
             await message.reply(content='确认存活，还没亖')
             return
-        print(message.message_reference)
         try:
             command, params, argv = parse_command(message.content)
             if not command:

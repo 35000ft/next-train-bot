@@ -17,12 +17,6 @@ headers = {
 }
 
 
-class Airport(BaseModel):
-    country: str
-    code: str
-    description: str
-
-
 class SZXFetcher:
     airport_name = '深圳'
     airport_code = 'SZX'

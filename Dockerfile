@@ -19,9 +19,10 @@ rm -rf /var/lib/apt/lists/*
 ENV LANG='zh_CN.UTF-8'
 ENV LANGUAGE='zh_CN:zh:en_US:en'
 ENV LC_ALL='zh_CN.UTF-8'
+COPY /requirements.txt /app/requirements.txt
 
 # 安装项目依赖
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r /app/requirements.txt
 
 FROM bot-base
 
