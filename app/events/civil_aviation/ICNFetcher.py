@@ -145,7 +145,7 @@ class ICNFetcher:
             "fromTime": _now.replace(minute=0, second=0).strftime("%H%M"),
             "toTime": _now.replace(minute=59, second=0).strftime("%H%M"),
             "airport": _form.airport or "",
-            "airline": kwargs.get("airline"),
+            "airline": _form.airlines or "",
             "airplane": _form.flight_no or ""
         }
 
