@@ -7,7 +7,9 @@ from tabulate import tabulate
 from app.events.civil_aviation.CANFetcher import CANFetcher
 from app.events.civil_aviation.HGHFetcher import HGHFetcher
 from app.events.civil_aviation.HKGFetcher import HKGFetcher
+from app.events.civil_aviation.ICNFetcher import ICNFetcher
 from app.events.civil_aviation.NKGFetcher import NKGFetcher
+from app.events.civil_aviation.SZXFetcher import SZXFetcher
 from app.events.civil_aviation.Schemas import QueryFlightForm, FlightInfo
 from app.events.civil_aviation.ShanghaiFetcher import SHAFetcher, PVGFetcher
 
@@ -33,6 +35,13 @@ def get_airport_fetcher(code: str):
         '广州': lambda: CANFetcher(),
         'CAN': lambda: CANFetcher(),
         '广州白云': lambda: CANFetcher(),
+        '深圳': lambda: SZXFetcher(),
+        '宝安': lambda: SZXFetcher(),
+        'SZX': lambda: SZXFetcher(),
+        '首尔': lambda: ICNFetcher(),
+        '仁川': lambda: ICNFetcher(),
+        '首尔仁川': lambda: ICNFetcher(),
+        'ICN': lambda: ICNFetcher(),
     }
     return _dict[code]()
 
@@ -67,7 +76,7 @@ async def handle_query_flight(message: GroupMessage | C2CMessage, airport: str =
         await message.reply(content=f'查询{airport}航班大屏异常', msg_seq=2)
         return
     content = f"{airport}机场{'出发' if is_dep else '到达'}大屏:\n"
-    headers = ['航班号', '时刻', '目的地' if is_dep else '出发地', '机型']
+    headers = ['航班号', '时刻', '目的地' if is_dep else '出发地', '机型', '状态']
 
     def format_time(_flight: FlightInfo) -> str:
         if is_dep:
@@ -84,7 +93,8 @@ async def handle_query_flight(message: GroupMessage | C2CMessage, airport: str =
             flight.flight_no,
             format_time(flight),
             flight.arr_airport if is_dep else flight.dep_airport,
-            flight.aircraft_model
+            flight.aircraft_model,
+            flight.status
         ]
         for flight in flights]
     content += tabulate(table, headers, tablefmt='simple')

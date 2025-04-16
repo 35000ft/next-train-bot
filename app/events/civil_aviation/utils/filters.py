@@ -128,7 +128,7 @@ def filter_flight_no(flights: List[FlightInfo], flight_no: str) -> List[FlightIn
 
 
 def flight_filter(flights: List[FlightInfo], **kwargs) -> List[FlightInfo]:
-    __flights = [x for x in flights if x is not None]
+    flights = [x for x in flights if x is not None]
     if alliance_name := kwargs.get('alliance'):
         flights = filter_alliance(flights, alliance_name)
     if aircraft_model := kwargs.get('aircraft_models'):
