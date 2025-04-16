@@ -11,7 +11,7 @@ from app.models.Railsystem import Station
 from app.schemas import RailsystemSchemas
 from app.service.personalize_service import get_default_railsystem_code
 from app.service.railsystem_service import get_station_detail_byid, get_station_by_keyword
-from app.utils.command_utils import get_group_and_user_id
+from app.utils.command_utils import get_group_and_user_id, save_context_command
 from app.utils.exceptions import BusinessException
 
 logger = logging.get_logger()
@@ -50,9 +50,10 @@ async def handle_get_station_by_name(message: GroupMessage | C2CMessage, station
 
     if isinstance(station, list):
         content: str = f'找到多个车站，要查看哪一个？\n'
-        for s in station:
-            content += f'{s.name} -r {s.system_code}\n'
-        raise BusinessException(content)
+        option_str = await save_context_command(user_id=user_id, group_id=group_id, cache=kwargs.get('_bot').cache,
+                                                command_list=[f'{s.name} -r {s.system_code}\n' for s in
+                                                              station], )
+        raise BusinessException(content + option_str)
 
     _station: RailsystemSchemas.Station = await get_station_detail_byid(station.id)
     if not _station:

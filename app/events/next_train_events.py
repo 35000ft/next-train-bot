@@ -146,15 +146,10 @@ async def handle_get_station_schedule(message: GroupMessage | C2CMessage, statio
 
     if not line and len(line_dict) > 1:
         content = f'车站:{station.name} 有多条线路，要查看哪一条？（回复序号即可）\n'
-        option_dict = {}
-        for index, _line in enumerate(line_dict.values()):
-            _index = str(index + 1)
-            command = f"/时刻表 {station.name} {_line.code}"
-            option_dict[_index] = command
-            content += f"{_index}. {command}\n"
-        await save_context_command(user_id=user_id, group_id=group_id, option_dict=option_dict,
-                                   cache=kwargs.get('_bot').cache)
-        await message.reply(content=content, msg_seq=2)
+        option_str = await save_context_command(user_id=user_id, group_id=group_id, cache=kwargs.get('_bot').cache,
+                                                command_list=[f"/时刻表 {station.name} {_line.code}" for _line in
+                                                              line_dict.values()], )
+        await message.reply(content=content + option_str, msg_seq=2)
         return
     if not line and len(line_dict) == 1:
         line = list(line_dict.values())[0]
@@ -211,10 +206,10 @@ async def handle_query_price(message: GroupMessage | C2CMessage, *station_names,
         from_station_name = station_names[i]
         to_station_name = station_names[i + 1]
         from_r: Tuple[RailsystemSchemas.Station, Dict[str, RailsystemSchemas.Line]] = \
-            await (handle_get_station_by_name(message, from_station_name, msg_seq=1))
+            await (handle_get_station_by_name(message, from_station_name, msg_seq=1, **kwargs))
 
         to_r: Tuple[RailsystemSchemas.Station, Dict[str, RailsystemSchemas.Line]] = \
-            await (handle_get_station_by_name(message, to_station_name, msg_seq=1))
+            await (handle_get_station_by_name(message, to_station_name, msg_seq=1, **kwargs))
 
         to_station, _ = to_r
         from_station, _ = from_r
