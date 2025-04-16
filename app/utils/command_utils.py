@@ -53,7 +53,7 @@ def is_http_url(url):
 
 
 async def save_context_command(user_id: str, group_id: str, command_list: List[str], **kwargs):
-    async def build_option_dict():
+    def build_option_dict():
         _option_dict = {}
         _reply_content = ""
         for index, _command in enumerate(command_list):
