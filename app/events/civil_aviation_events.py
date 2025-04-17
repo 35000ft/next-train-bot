@@ -5,6 +5,7 @@ from botpy.message import GroupMessage, C2CMessage
 from tabulate import tabulate
 
 from app.events.civil_aviation.CANFetcher import CANFetcher
+from app.events.civil_aviation.GMPFetcher import GMPFetcher
 from app.events.civil_aviation.HGHFetcher import HGHFetcher
 from app.events.civil_aviation.HKGFetcher import HKGFetcher
 from app.events.civil_aviation.ICNFetcher import ICNFetcher
@@ -42,6 +43,9 @@ def get_airport_fetcher(code: str):
         '仁川': lambda: ICNFetcher(),
         '首尔仁川': lambda: ICNFetcher(),
         'ICN': lambda: ICNFetcher(),
+        'GMP': lambda: GMPFetcher(),
+        '首尔金浦': lambda: GMPFetcher(),
+        '金浦': lambda: GMPFetcher(),
     }
     return _dict[code]()
 
