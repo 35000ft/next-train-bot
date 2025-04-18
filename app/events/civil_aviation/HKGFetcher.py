@@ -166,8 +166,8 @@ class HKGFetcher:
         def filter_flights(__flights: List[FlightInfo]) -> List[FlightInfo]:
             _result: List[FlightInfo] = flight_filter(flights, flight_no=_form.flight_no, airlines=_form.airlines,
                                                       airlines_codes=_form.airlines_codes,
-                                                      dep_airport=is_dep and _form.airport_name,
-                                                      arr_airport=(not is_dep) and _form.airport_name, )
+                                                      dep_airport=is_dep and _form.airport,
+                                                      arr_airport=(not is_dep) and _form.airport, )
             if _form.at_time:
                 _result = filter(lambda x: x.is_after(_form.at_time, is_dep), list(_result))
             else:
