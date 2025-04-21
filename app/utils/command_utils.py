@@ -2,7 +2,6 @@ import re
 from typing import List
 
 from botpy import logging
-from botpy.message import GroupMessage, C2CMessage
 
 from app.utils.exceptions import BusinessException
 
@@ -37,12 +36,6 @@ def parse_command(input_string):
                 named_params[command] = True
         i += 1
     return _command, seq_params, named_params
-
-
-def get_group_and_user_id(message: GroupMessage | C2CMessage, ):
-    group_id = message.group_openid if isinstance(message, GroupMessage) else None
-    user_id = message.author.member_openid
-    return group_id, user_id
 
 
 def is_http_url(url):

@@ -14,9 +14,10 @@ from app.service.personalize_service import get_default_railsystem_code, set_def
     get_station_by_user_station_alias, add_station_name_alias
 from app.service.realtime_service import get_station_realtime, get_schedule_image
 from app.utils import time_utils
-from app.utils.command_utils import get_group_and_user_id, save_context_command
+from app.utils.command_utils import save_context_command
 from app.utils.forbidden_words import forbidden_word_filter
 from app.utils.message_utils import post_group_base64_file
+from app.utils.qqbot_utils import get_group_and_user_id
 from app.utils.time_utils import get_now, end_of_date_timestamp
 from app.service.ticket_price_service import query_ticket_price
 from app.utils.time_utils import get_offset_from_str

@@ -7,8 +7,6 @@ from typing import List
 from zoneinfo import ZoneInfo
 
 import httpx
-import pytz
-import urllib3.util
 from botpy import logging
 from botpy.message import GroupMessage, C2CMessage
 from pydantic import BaseModel

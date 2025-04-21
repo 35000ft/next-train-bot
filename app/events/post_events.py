@@ -1,4 +1,5 @@
 import os
+import random
 import uuid
 
 from async_lru import alru_cache
@@ -10,6 +11,7 @@ from app.config import get_db_session
 from app.models.Common import RobotConfig
 from app.models.Post import Post
 from app.service.file_service import download_and_save_image, get_local_image
+from app.utils import qqbot_utils
 from app.utils.message_utils import post_group_base64_file
 
 logger = logging.get_logger()
@@ -76,6 +78,21 @@ async def handle_post(message: GroupMessage | C2CMessage, post_type: str, name: 
 
 async def handle_get_post(message: GroupMessage | C2CMessage, post_type: str, **kwargs):
     post_type_code = await parse_to_accepted_type_code(post_type)
+    if random.random() < 0.1:
+        # 随机返回用户头像
+        avatar_url = qqbot_utils.get_user_avatar_url(message.author.member_openid)
+        _upload_media = await message._api.post_group_file(group_openid=message.group_openid, file_type=1,
+                                                           url=avatar_url)
+        await message._api.post_group_message(
+            content='先发发你自己',
+            group_openid=message.group_openid,
+            msg_type=7,
+            msg_id=message.id,
+            media=_upload_media,
+            msg_seq=1,
+        )
+        return
+
     if not post_type_code:
         await message.reply(content=f'不支持的topic:{post_type}')
         return

@@ -11,8 +11,9 @@ from app.events.next_train_events import handle_get_station_schedule, handle_dai
     handle_get_station_realtime_alias_mode
 from app.events.post_events import handle_post
 from app.utils.AsyncLRUCache import AsyncLRUCache
-from app.utils.command_utils import parse_command, find_context_command, get_group_and_user_id
+from app.utils.command_utils import parse_command, find_context_command
 from app.utils.exceptions import exception_handler
+from app.utils.qqbot_utils import get_group_and_user_id
 
 logger = logging.get_logger()
 

@@ -1,4 +1,3 @@
-import os
 import random
 from typing import List, Dict, Tuple
 
@@ -11,8 +10,9 @@ from app.models.Railsystem import Station
 from app.schemas import RailsystemSchemas
 from app.service.personalize_service import get_default_railsystem_code
 from app.service.railsystem_service import get_station_detail_byid, get_station_by_keyword
-from app.utils.command_utils import get_group_and_user_id, save_context_command
+from app.utils.command_utils import save_context_command
 from app.utils.exceptions import BusinessException
+from app.utils.qqbot_utils import get_group_and_user_id
 
 logger = logging.get_logger()
 
