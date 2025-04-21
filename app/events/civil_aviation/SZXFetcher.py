@@ -25,6 +25,9 @@ class SZXFetcher:
     fetch_lock = asyncio.Lock()
     api_url = 'https://www.szairport.com/szjchbjk/hbcx/flightInfo'
 
+    def now_time(self) -> datetime:
+        return get_now(480)
+
     async def parse_dep_flight_data_from_row(self, data: dict, flight_date: datetime) -> FlightInfo:
         dep_time = data.get('startSchemeTakeoffTime')
         arr_time = data.get('terminalSchemeLandinTime')
@@ -97,12 +100,17 @@ class SZXFetcher:
         return flight_info
 
     def build_list_params(self, _form: QueryFlightForm, is_dep: bool, **kwargs):
+        keyword = kwargs.get(_form.flight_no, kwargs.get(_form.airport, ""))
+        if len(keyword) > 0:
+            current_time = '12'
+        else:
+            current_time = str(int(self.now_time().hour / 2))
         return {
             'type': 'cn',
             'flag': "D" if is_dep else "A",
             'currentDate': "1",
-            'currentTime': "12",  # 12是全部 0是0至2点 以此类推
-            'hbxx_hbh': kwargs.get(_form.flight_no, kwargs.get(_form.airport, "")),  # 航班号 或 城市
+            'currentTime': current_time,  # 12是全部 0是0至2点 以此类推
+            'hbxx_hbh': keyword,  # 航班号 或 城市
         }
 
     async def fetch_flights(self, _form: QueryFlightForm, **kwargs):
