@@ -15,7 +15,7 @@ from app.service.personalize_service import get_default_railsystem_code, set_def
 from app.service.realtime_service import get_station_realtime, get_schedule_image
 from app.utils import time_utils
 from app.utils.command_utils import save_context_command
-from app.utils.forbidden_words import forbidden_word_filter
+from app.utils.forbidden_words import check_params_contains_forbidden_word
 from app.utils.message_utils import post_group_base64_file
 from app.utils.qqbot_utils import get_group_and_user_id
 from app.utils.time_utils import get_now, end_of_date_timestamp
@@ -88,7 +88,7 @@ async def handle_get_station_realtime_core(message, station: RailsystemSchemas.S
     await message.reply(content=content, msg_seq=2)
 
 
-@forbidden_word_filter("station_name")
+@check_params_contains_forbidden_word("station_name")
 async def handle_get_station_realtime(message: GroupMessage | C2CMessage, station_name: str, **kwargs):
     await message.reply(content=f'查询{station_name}实时列车中, 请稍后', msg_seq=1)
     r: Tuple[RailsystemSchemas.Station, Dict[str, RailsystemSchemas.Line]] = \
@@ -240,7 +240,7 @@ async def handle_daily_ticket(message: GroupMessage | C2CMessage, station_name: 
         await message.reply(content=f'线网:{railsystem_code} 不支持日票哦')
 
 
-@forbidden_word_filter("station_name", "alias")
+@check_params_contains_forbidden_word("station_name", "alias")
 async def handle_set_alias_station_name(message: GroupMessage | C2CMessage, station_name: str, alias: str, **kwargs):
     group_id, user_id = get_group_and_user_id(message)
     r: Tuple[RailsystemSchemas.Station, Dict[str, RailsystemSchemas.Line]] = \

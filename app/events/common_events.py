@@ -1,8 +1,10 @@
 import random
 from typing import List, Dict, Tuple
 
+import httpx
 from botpy import logging
 from botpy.message import GroupMessage, C2CMessage
+from lxml import etree
 
 from app.events.aunu_events import get_star_party, handle_get_apod
 from app.events.post_events import handle_get_post
@@ -12,6 +14,8 @@ from app.service.personalize_service import get_default_railsystem_code
 from app.service.railsystem_service import get_station_detail_byid, get_station_by_keyword
 from app.utils.command_utils import save_context_command
 from app.utils.exceptions import BusinessException
+from app.utils.forbidden_words import check_params_contains_forbidden_word, contains_forbidden_word, \
+    replace_forbidden_word
 from app.utils.qqbot_utils import get_group_and_user_id
 
 logger = logging.get_logger()
@@ -87,3 +91,56 @@ async def handle_fa(message: GroupMessage | C2CMessage, *args, **kwargs):
 
     _handle_func = accepted_type[fa_type]
     await _handle_func(message, *args[1:], **kwargs)
+
+
+async def wiki_search(keyword: str):
+    url = f'https://zh.wikipedia.org/w/index.php?search={keyword}'
+    async with httpx.AsyncClient() as client:
+        try:
+            resp = await client.get(url, headers={
+                "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36"},
+                                    follow_redirects=True)
+            tree = etree.HTML(resp.text)
+            first_url = tree.xpath("//div[@class='searchResultImage-text']/div/a[1]/@href")
+            if not first_url:
+                raise BusinessException('keyword not found')
+            return 'https://zh.wikipedia.org' + first_url[0]
+        except Exception as e:
+            raise e
+
+
+async def wiki_get_page(url: str):
+    async with httpx.AsyncClient() as client:
+        logger.info(f'wiki url: {url}')
+        try:
+            resp = await client.get(url, headers={
+                "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36"},
+                                    follow_redirects=True)
+            if resp.status_code == 404:
+                return None
+            tree = etree.HTML(resp.text)
+            main_content = tree.xpath("//div[@id='mw-content-text']/div[contains(@class,'mw-content-ltr')]/p//text()")
+
+            main_content = ''.join(main_content)
+            main_content = replace_forbidden_word(main_content)
+            return main_content
+        except Exception as e:
+            logger.error(e)
+            raise e
+
+
+@check_params_contains_forbidden_word("keyword")
+async def handle_wiki(message: GroupMessage | C2CMessage, keyword: str, **kwargs):
+    keyword = keyword.strip()
+    if not keyword:
+        await message.reply(content='不知道你想查什么')
+        return
+    max_word = 400
+    url = f'https://zh.wikipedia.org/wiki/{keyword}'
+    wiki_content = await wiki_get_page(url)
+    if not wiki_content:
+        wiki_url = await wiki_search(keyword)
+        wiki_content = await wiki_get_page(wiki_url)
+        await message.reply(content=wiki_content[0:max_word])
+    else:
+        await message.reply(content=wiki_content[0:max_word])

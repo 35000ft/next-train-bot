@@ -1,10 +1,7 @@
-from dotenv import load_dotenv
 import os
 
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
-
-load_dotenv()
 
 DATABASE_URL = (
     f"{os.getenv('DB_TYPE')}+aio{os.getenv('DB_TYPE')}://{os.getenv('DB_USER')}:{os.getenv('DB_PWD')}"
