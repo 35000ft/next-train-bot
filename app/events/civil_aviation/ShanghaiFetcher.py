@@ -164,7 +164,7 @@ class ShanghaiFetcher:
 
     async def fetch_flights(self, _form: QueryFlightForm, **kwargs):
         def filter_flights(__flights: List[FlightInfo]) -> List[FlightInfo]:
-            return flight_filter(flights, flight_no=_form.flight_no, airlines=_form.airlines,
+            return flight_filter(__flights, flight_no=_form.flight_no, airlines=_form.airlines,
                                  airlines_codes=_form.airlines_codes)
 
         is_dep = True if not kwargs.get('arr') else False

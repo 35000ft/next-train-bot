@@ -9,10 +9,11 @@ from app.events.civil_aviation.HGHFetcher import HGHFetcher
 from app.events.civil_aviation.ICNFetcher import ICNFetcher
 from app.events.civil_aviation.SZXFetcher import SZXFetcher
 from app.events.civil_aviation.Schemas import QueryFlightForm
+from app.events.civil_aviation.ShanghaiFetcher import PVGFetcher
 
 
 async def main():
-    fetcher = GMPFetcher()
+    fetcher = PVGFetcher()
     q_form = QueryFlightForm()
     flights = await fetcher.fetch_flights(_form=q_form, headless=True, )
     for x in flights:
