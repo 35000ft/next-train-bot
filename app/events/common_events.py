@@ -54,10 +54,13 @@ async def handle_get_station_by_name(message: GroupMessage | C2CMessage, station
 
     if isinstance(station, list):
         content: str = f'找到多个车站，要查看哪一个？\n'
-        option_str = await save_context_command(user_id=user_id, group_id=group_id, cache=kwargs.get('_bot').cache,
-                                                command_list=[f'{s.name} -r {s.system_code}\n' for s in
-                                                              station], )
-        raise BusinessException(content + option_str)
+        _command_name = kwargs.get("command_name")
+        if _command_name:
+            option_str = await save_context_command(user_id=user_id, group_id=group_id, cache=kwargs.get('_bot').cache,
+                                                    command_list=[
+                                                        f'/{_command_name} {s.name} -r {s.system_code}\n' for s
+                                                        in station], )
+            raise BusinessException(content + option_str)
 
     _station: RailsystemSchemas.Station = await get_station_detail_byid(station.id)
     if not _station:

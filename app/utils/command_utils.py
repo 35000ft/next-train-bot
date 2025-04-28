@@ -75,8 +75,11 @@ async def find_context_command(user_id: str, group_id: str, option_str: str, **k
     if isinstance(group_id, str):
         key = key + "-" + group_id
     options: dict = await cache.get(key)
-    command = options.get(option_str.strip())
-    if command:
-        return command
+    if options:
+        command = options.get(option_str.strip())
+        if command:
+            return command
+        else:
+            raise BusinessException('指令有误')
     else:
-        raise BusinessException('指令有误')
+        raise BusinessException("没有可用的context指令选项")

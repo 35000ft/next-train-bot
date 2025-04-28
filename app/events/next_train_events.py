@@ -135,7 +135,7 @@ async def handle_get_station_schedule(message: GroupMessage | C2CMessage, statio
     group_id, user_id = get_group_and_user_id(message)
     await message.reply(content=f'查询{station_name}时刻表中, 请稍后', msg_seq=1)
     r: Tuple[RailsystemSchemas.Station, Dict[str, RailsystemSchemas.Line]] = \
-        await (handle_get_station_by_name(message, station_name, msg_seq=1, **kwargs))
+        await (handle_get_station_by_name(message, station_name, msg_seq=1, command_name='时刻表', **kwargs))
     station, line_dict = r
     if len(line_dict) == 0:
         await message.reply(content=f'车站:{station.name} 暂无可查看的时刻表', msg_seq=2)
@@ -207,10 +207,10 @@ async def handle_query_price(message: GroupMessage | C2CMessage, *station_names,
         from_station_name = station_names[i]
         to_station_name = station_names[i + 1]
         from_r: Tuple[RailsystemSchemas.Station, Dict[str, RailsystemSchemas.Line]] = \
-            await (handle_get_station_by_name(message, from_station_name, msg_seq=1, **kwargs))
+            await (handle_get_station_by_name(message, from_station_name, command_name='票价', msg_seq=1, **kwargs))
 
         to_r: Tuple[RailsystemSchemas.Station, Dict[str, RailsystemSchemas.Line]] = \
-            await (handle_get_station_by_name(message, to_station_name, msg_seq=1, **kwargs))
+            await (handle_get_station_by_name(message, to_station_name, command_name='票价', msg_seq=1, **kwargs))
 
         to_station, _ = to_r
         from_station, _ = from_r
@@ -231,7 +231,7 @@ async def handle_query_price(message: GroupMessage | C2CMessage, *station_names,
 
 async def handle_daily_ticket(message: GroupMessage | C2CMessage, station_name: str, **kwargs):
     r: Tuple[RailsystemSchemas.Station, Dict[str, RailsystemSchemas.Line]] = \
-        await (handle_get_station_by_name(message, station_name, msg_seq=1, **kwargs))
+        await (handle_get_station_by_name(message, station_name, command_name='日票', msg_seq=1, **kwargs))
     station, line_dict = r
     railsystem_code = station.railsystemCode
     if railsystem_code == 'NJMTR':
@@ -244,7 +244,7 @@ async def handle_daily_ticket(message: GroupMessage | C2CMessage, station_name: 
 async def handle_set_alias_station_name(message: GroupMessage | C2CMessage, station_name: str, alias: str, **kwargs):
     group_id, user_id = get_group_and_user_id(message)
     r: Tuple[RailsystemSchemas.Station, Dict[str, RailsystemSchemas.Line]] = \
-        await (handle_get_station_by_name(message, station_name, msg_seq=1, **kwargs))
+        await (handle_get_station_by_name(message, station_name, command_name='车站别名', msg_seq=1, **kwargs))
     station, line_dict = r
     existed_alias_station: Station = await get_station_by_user_station_alias(alias, user_id)
     if existed_alias_station:
