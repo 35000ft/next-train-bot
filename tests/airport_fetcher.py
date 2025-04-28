@@ -1,13 +1,5 @@
 import asyncio
-from datetime import datetime
 
-import httpx
-
-from app.events.civil_aviation.CANFetcher import CANFetcher
-from app.events.civil_aviation.GMPFetcher import GMPFetcher
-from app.events.civil_aviation.HGHFetcher import HGHFetcher
-from app.events.civil_aviation.ICNFetcher import ICNFetcher
-from app.events.civil_aviation.SZXFetcher import SZXFetcher
 from app.events.civil_aviation.Schemas import QueryFlightForm
 from app.events.civil_aviation.ShanghaiFetcher import PVGFetcher
 

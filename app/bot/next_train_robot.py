@@ -3,6 +3,7 @@ from botpy import logging
 from botpy.message import GroupMessage, C2CMessage
 
 from app.events.civil_aviation_events import handle_query_flight
+from app.events.cma_events import handle_query_radar
 from app.events.common_events import handle_fa, handle_wiki
 from app.events.cr_events import handle_query_emu_no
 from app.events.next_train_events import handle_get_station_realtime, handle_get_default_railsystem, handle_query_price
@@ -31,8 +32,9 @@ class NextTrainClient(botpy.Client):
         '担当': handle_query_emu_no,
         '机场大屏': handle_query_flight,
         '车站别名': handle_set_alias_station_name,
-        '喂鸡': handle_wiki,
-        'wiki': handle_wiki,
+        # '喂鸡': handle_wiki,
+        # 'wiki': handle_wiki,
+        '雷达': handle_query_radar,
     }
     cache = AsyncLRUCache(maxsize=128)
 
