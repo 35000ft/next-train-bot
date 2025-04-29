@@ -2,7 +2,7 @@ import botpy
 from botpy import logging
 from botpy.message import GroupMessage, C2CMessage
 
-from app.events.civil_aviation_events import handle_query_flight
+from app.events.civil_aviation_events import handle_query_flight, handle_query_airport_weather_report
 from app.events.cma_events import handle_query_radar
 from app.events.common_events import handle_fa, handle_wiki
 from app.events.cr_events import handle_query_emu_no
@@ -31,6 +31,8 @@ class NextTrainClient(botpy.Client):
         '发': handle_fa,
         '担当': handle_query_emu_no,
         '机场大屏': handle_query_flight,
+        '机场报文': handle_query_airport_weather_report,
+        '报文': handle_query_airport_weather_report,
         '车站别名': handle_set_alias_station_name,
         # '喂鸡': handle_wiki,
         # 'wiki': handle_wiki,
