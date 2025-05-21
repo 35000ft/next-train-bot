@@ -1,14 +1,26 @@
 import re
 from typing import List
 
+import jieba
 from botpy import logging
 
 from app.utils.exceptions import BusinessException
 
 logger = logging.get_logger()
+has_inited_jieba = False
 
 
-def parse_command(input_string):
+def try_cut_command(input_string: str, accepted_commands: List[str]) -> List[str]:
+    global has_inited_jieba
+    if not has_inited_jieba:
+        for x in accepted_commands:
+            jieba.add_word(x)
+        has_inited_jieba = True
+    return jieba.lcut(input_string)
+
+
+def parse_command(input_string: str, **kwargs):
+    accepted_commands = kwargs.get('accepted_commands', [])
     if not input_string:
         return None, None
     _split = input_string.strip().strip('/').split(' ')
@@ -17,7 +29,13 @@ def parse_command(input_string):
     if len(parts) == 0:
         return None, None, None
     if len(parts) == 1:
-        return parts[0], [], {}
+        if accepted_commands:
+            if parts[0] in accepted_commands:
+                return parts[0], [], {}
+            else:
+                parts = try_cut_command(parts[0], accepted_commands)
+        else:
+            return parts[0], [], {}
     _command = parts[0]
     seq_params = []
     named_params = {}

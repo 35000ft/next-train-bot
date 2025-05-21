@@ -1,7 +1,6 @@
 import botpy
 from botpy import logging
 from botpy.message import GroupMessage, C2CMessage
-
 from app.events.civil_aviation_events import handle_query_flight, handle_query_airport_weather_report
 from app.events.cma_events import handle_query_radar
 from app.events.common_events import handle_fa, handle_wiki
@@ -55,7 +54,7 @@ class NextTrainClient(botpy.Client):
             await message.reply(content='确认存活，还没亖')
             return
         try:
-            command, params, argv = parse_command(message.content)
+            command, params, argv = parse_command(message.content, accepted_commands=self.command_dict.keys())
             if not command:
                 await message.reply(content='目前不支持该指令哦~')
                 return
