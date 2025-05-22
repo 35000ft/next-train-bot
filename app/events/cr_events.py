@@ -10,12 +10,13 @@ import httpx
 from botpy import logging
 from botpy.message import GroupMessage, C2CMessage
 from pydantic import BaseModel
+from china_railway_tools.api.train import *
 
 _headers = {
     'user-agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0"
 }
 
-logger = logging.get_logger()
+logger = logging.getLogger(__name__)
 
 
 class EmuTrain(BaseModel):
@@ -58,4 +59,23 @@ async def handle_query_emu_no(message: GroupMessage | C2CMessage, train_no: str,
         r_content += '\n'
         r_content += '来源:rail_re'
         await message.reply(content=r_content)
+        return
+
+
+async def handle_query_train_price(message: GroupMessage | C2CMessage, train_code: str, from_station: str,
+                                   to_station: str, **kwargs):
+    form = QueryTrainTicket(train_code=train_code, from_station=from_station, to_station=to_station,
+                            partition=kwargs.get('p', -1), )
+    try:
+        resp: TrainTicketResponse = await query_train_prices(form)
+        content = f"""车次:{resp.train_info.train_code} {resp.train_info.depart_date}
+{resp.train_info.from_stop_info.station_name} -> {resp.train_info.to_stop_info.station_name} | {resp.train_info.from_stop_info.dep_time} -> {resp.train_info.to_stop_info.arr_time}\n"""
+        for ticket in resp.train_info.tickets:
+            seat = ticket.seat_type
+            price = f"{float(ticket.price):.1f}元"
+            content += f" - {seat}: {price} ({ticket.stock})\n"
+        await message.reply(content=content)
+    except Exception as e:
+        logger.exception(e)
+        await message.reply(content='查询车次票价失败')
         return
