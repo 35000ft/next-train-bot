@@ -11,6 +11,9 @@ from botpy import logging
 from botpy.message import GroupMessage, C2CMessage
 from pydantic import BaseModel
 from china_railway_tools.api.train import *
+from tabulate import tabulate
+
+from app.utils.time_utils import get_now
 
 _headers = {
     'user-agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0"
@@ -78,4 +81,56 @@ async def handle_query_train_price(message: GroupMessage | C2CMessage, train_cod
     except Exception as e:
         logger.exception(e)
         await message.reply(content='查询车次票价失败')
+        return
+
+
+async def handle_query_remain_tickets(message: GroupMessage | C2CMessage, from_station: str, to_station: str, **kwargs):
+    via_stations_str: str = kwargs.get('v')
+    if via_stations_str:
+        via_stations = [x.strip() for x in via_stations_str.split(',')]
+    else:
+        via_stations = []
+
+    dep_date_str: str = kwargs.get('d')
+    dep_date = get_now(480) + timedelta(days=1)
+    try:
+        if dep_date_str:
+            dep_date = datetime.strptime(dep_date_str, '%Y%m%d')
+    except Exception as e:
+        await message.reply(content='日期解析失败,支持的格式:20250101')
+        return
+
+    limit = kwargs.get('limit', 30)
+    limit = min(limit, 30)
+
+    train_code_str: str = kwargs.get('code')
+    train_codes = []
+    if train_code_str:
+        train_codes = train_code_str.split(',')
+    if kwargs.get('g'):
+        train_codes.extend(['G*', 'D*', 'C*', 'S*'])
+    elif kwargs.get('z'):
+        train_codes.extend(['K*', 'Z*', 'T*', 'Y*'])
+
+    form = QueryTrains(from_station_name=from_station, to_station_name=to_station, exact=kwargs.get('e', False),
+                       start_time=kwargs.get('stime', get_now(480).strftime("%H:%M")),
+                       end_time=kwargs.get('etime', '23:59'),
+                       via_stations=via_stations, dep_date=dep_date, )
+    try:
+        trains = await query_tickets(form)
+        trains = trains[:limit]
+        content = "\n"
+        table = [
+            [train_info.train_code,
+             f'{train_info.from_stop_info.station_name}-{train_info.to_stop_info.station_name}',
+             f'{train_info.from_stop_info.dep_time}-{train_info.to_stop_info.arr_time}',
+             f'{float(train_info.get_lowest_price()):.1f}⬆']
+            for train_info in trains
+        ]
+        headers = ['车次', '车站', '时间', '票价']
+        content += tabulate(table, headers, tablefmt='simple')
+        await message.reply(content=content)
+    except Exception as e:
+        logger.exception(e)
+        await message.reply(content='查询车票失败')
         return
