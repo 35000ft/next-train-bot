@@ -1,5 +1,7 @@
 from botpy.http import Route
-from botpy.message import GroupMessage
+from botpy.message import GroupMessage, C2CMessage
+
+from app.service.file_service import get_local_image
 
 
 async def send_image_message(_message):
@@ -26,3 +28,25 @@ async def post_group_base64_file(
     payload.pop("_message", None)
     route = Route("POST", "/v2/groups/{group_openid}/files", group_openid=group_openid)
     return await _message._api._http.request(route, json=payload)
+
+
+async def reply_image_message(image_path: str, message: GroupMessage | C2CMessage, text: str = None, **kwargs):
+    base64_data = await get_local_image(image_path)
+    if not base64_data:
+        await message.reply(content=kwargs.get('on_not_found', '无效的文件'))
+        return
+
+    upload_media = await post_group_base64_file(
+        _message=message,
+        file_data=base64_data,
+        group_openid=message.group_openid,
+        file_type=1,
+    )
+    await message._api.post_group_message(
+        group_openid=message.group_openid,
+        msg_type=7,
+        msg_id=message.id,
+        content=text,
+        media=upload_media,
+        msg_seq=2,
+    )

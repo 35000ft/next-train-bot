@@ -96,13 +96,15 @@ async def handle_fa(message: GroupMessage | C2CMessage, *args, **kwargs):
     await _handle_func(message, *args[1:], **kwargs)
 
 
-async def wiki_search(keyword: str):
+async def wiki_search(keyword: str) -> str:
     url = f'https://zh.wikipedia.org/w/index.php?search={keyword}'
     async with httpx.AsyncClient() as client:
         try:
             resp = await client.get(url, headers={
                 "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36"},
                                     follow_redirects=True)
+            if resp.history:
+                return str(resp.url)
             tree = etree.HTML(resp.text)
             first_url = tree.xpath("//div[@class='searchResultImage-text']/div/a[1]/@href")
             if not first_url:

@@ -12,7 +12,7 @@ from app.models.Common import RobotConfig
 from app.models.Post import Post
 from app.service.file_service import download_and_save_image, get_local_image
 from app.utils import qqbot_utils
-from app.utils.message_utils import post_group_base64_file
+from app.utils.message_utils import post_group_base64_file, reply_image_message
 
 logger = logging.get_logger()
 
@@ -108,21 +108,4 @@ async def handle_get_post(message: GroupMessage | C2CMessage, post_type: str, **
         await message.reply(content='这个topic下暂时没有投稿呢')
         return
 
-    base64_data = await get_local_image(result.file_path)
-    if not base64_data:
-        await message.reply(content='帖子图片已失效')
-        return
-
-    upload_media = await post_group_base64_file(
-        _message=message,
-        file_data=base64_data,
-        group_openid=message.group_openid,
-        file_type=1,  # 文件类型要对应上，具体支持的类型见方法说明
-    )
-    await message._api.post_group_message(
-        group_openid=message.group_openid,
-        msg_type=7,
-        msg_id=message.id,
-        media=upload_media,
-        msg_seq=2,
-    )
+    await reply_image_message(result.file_path, message, text=result.name, on_not_found='帖子图片已失效')

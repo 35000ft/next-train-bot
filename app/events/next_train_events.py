@@ -180,8 +180,6 @@ async def handle_get_station_schedule(message: GroupMessage | C2CMessage, statio
         group_openid=message.group_openid,
         file_type=1,  # 文件类型要对应上，具体支持的类型见方法说明
     )
-    logger.info(f'上传成功:{upload_media}')
-    # 资源上传后，会得到Media，用于发送消息
     await message._api.post_group_message(
         group_openid=message.group_openid,
         msg_type=7,

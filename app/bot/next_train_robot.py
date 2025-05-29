@@ -2,7 +2,7 @@ import botpy
 from botpy import logging
 from botpy.message import GroupMessage, C2CMessage
 from app.events.civil_aviation_events import handle_query_flight, handle_query_airport_weather_report
-from app.events.cma_events import handle_query_radar
+from app.events.cma_events import handle_query_radar, handle_query_wiki_climate
 from app.events.common_events import handle_fa, handle_wiki
 from app.events.cr_events import handle_query_emu_no, handle_query_train_price, handle_query_remain_tickets
 from app.events.next_train_events import handle_get_station_realtime, handle_get_default_railsystem, handle_query_price
@@ -36,6 +36,7 @@ class NextTrainClient(botpy.Client):
         # '喂鸡': handle_wiki,
         # 'wiki': handle_wiki,
         '雷达': handle_query_radar,
+        '气候': handle_query_wiki_climate,
         '车票': handle_query_train_price,
         '余票': handle_query_remain_tickets,
     }
