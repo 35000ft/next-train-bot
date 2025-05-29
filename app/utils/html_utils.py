@@ -29,5 +29,5 @@ def dom_to_image(dom: str, save_path: str, size: tuple = (1200, 800), ):
         </html>
         """
 
-    hti = Html2Image(output_path=dirname, size=size)
+    hti = Html2Image(output_path=dirname, size=size, custom_flags=['--no-sandbox'])
     hti.screenshot(html_str=full_html, save_as=filename)
