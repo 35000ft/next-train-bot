@@ -1,4 +1,4 @@
-FROM python:3.12-bullseye as bot-base
+FROM python:3.12-bullseye AS bot-base
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -20,6 +20,7 @@ ENV LANG='zh_CN.UTF-8'
 ENV LANGUAGE='zh_CN:zh:en_US:en'
 ENV LC_ALL='zh_CN.UTF-8'
 COPY /requirements.txt /app/requirements.txt
+COPY /github_requirements.txt /app/github_requirements.txt
 
 # 安装项目依赖
 RUN pip install --no-cache-dir -r /app/requirements.txt
@@ -34,6 +35,7 @@ RUN mkdir -p /app/data \
     && mkdir -p /app/log \
     && mkdir -p /app/data/schedules \
     && mkdir -p /app/data/ticket-prices
+RUN pip install --no-cache-dir -r /app/github_requirements.txt
 
 # 定义容器启动时运行的命令
 ENTRYPOINT ["python3", "-m","app.main"]

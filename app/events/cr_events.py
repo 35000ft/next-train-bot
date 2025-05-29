@@ -67,7 +67,7 @@ async def handle_query_emu_no(message: GroupMessage | C2CMessage, train_no: str,
 
 async def handle_query_train_price(message: GroupMessage | C2CMessage, train_code: str, from_station: str,
                                    to_station: str, **kwargs):
-    form = QueryTrainTicket(train_code=train_code, from_station=from_station, to_station=to_station,
+    form = QueryTrainTicket(train_code=train_code, from_station_name=from_station, to_station_name=to_station,
                             partition=kwargs.get('p', -1), )
     try:
         resp: TrainTicketResponse = await query_train_prices(form)
@@ -92,7 +92,8 @@ async def handle_query_remain_tickets(message: GroupMessage | C2CMessage, from_s
         via_stations = []
 
     dep_date_str: str = kwargs.get('d')
-    dep_date = get_now(480) + timedelta(days=1)
+    now = get_now(480)
+    dep_date = now
     try:
         if dep_date_str:
             dep_date = datetime.strptime(dep_date_str, '%Y%m%d')
@@ -101,7 +102,7 @@ async def handle_query_remain_tickets(message: GroupMessage | C2CMessage, from_s
         return
 
     limit = kwargs.get('limit', 30)
-    limit = min(limit, 30)
+    limit = min(int(limit), 30)
 
     train_code_str: str = kwargs.get('code')
     train_codes = []
@@ -112,10 +113,16 @@ async def handle_query_remain_tickets(message: GroupMessage | C2CMessage, from_s
     elif kwargs.get('z'):
         train_codes.extend(['K*', 'Z*', 'T*', 'Y*'])
 
+    start_time = kwargs.get('st')
+    if not start_time:
+        if dep_date.date() != now.date():
+            start_time = '00:00'
+        else:
+            start_time = now.strftime("%H:%M")
     form = QueryTrains(from_station_name=from_station, to_station_name=to_station, exact=kwargs.get('e', False),
-                       start_time=kwargs.get('stime', get_now(480).strftime("%H:%M")),
-                       end_time=kwargs.get('etime', '23:59'),
-                       via_stations=via_stations, dep_date=dep_date, )
+                       start_time=start_time,
+                       end_time=kwargs.get('et', '23:59'),
+                       via_stations=via_stations, dep_date=dep_date, train_codes=train_codes)
     try:
         trains = await query_tickets(form)
         trains = trains[:limit]

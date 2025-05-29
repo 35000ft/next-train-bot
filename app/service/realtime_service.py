@@ -99,6 +99,19 @@ async def get_schedule_image(station_name: str, line_name: str, station_id: str,
         driver.quit()
 
 
+async def get_train_plan(train_reg_no: str, _date: datetime):
+    url = f'{os.getenv("REALTIME_API_BASEURL")}/metro-trace/get-train-plan/regno/'
+    query_params = {
+        'regNo': train_reg_no,
+        'date': _date.strftime("%Y-%m-%d")
+    }
+    try:
+        train_plan = await fetch(url, query_params=query_params, method='get')
+    except Exception as e:
+        logger.error(f'Get train plan failed, params:{query_params}', exc_info=e)
+        raise Exception("")
+
+
 async def main():
     x = await get_schedule_image('新街口', '2号线', '13', '2', datetime.now())
     print(x)

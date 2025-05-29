@@ -13,16 +13,17 @@ logger = logging.get_logger()
 
 async def fetch(_url, method: str = 'get', **kwargs):
     logger.info(f'fetch url:{_url} method:{method}')
-    if method == 'get':
-        resp = httpx.get(_url, headers=nmtr_headers)
-    elif method == 'post':
+    query_params = kwargs.get('query_params', {})
+    if method.lower() == 'get':
+        resp = httpx.get(_url, headers=nmtr_headers, params=query_params)
+    elif method.lower() == 'post':
         _body = kwargs.get('data')
-        resp = httpx.post(_url, headers=nmtr_headers, data=_body)
+        resp = httpx.post(_url, headers=nmtr_headers, data=_body, params=query_params)
     else:
         raise Exception('Method must be "get" or "post"')
     if resp.status_code == 200 and (j_obj := resp.json()):
         if j_obj['failed']:
-            return None
+            raise Exception(f"failed fetch: {j_obj['msg']}")
         else:
             return j_obj['data'] if 'data' in j_obj else j_obj
     else:
