@@ -4,10 +4,11 @@ from typing import List
 import jieba
 from botpy import logging
 
-from app.utils.exceptions import BusinessException
+from app.utils.exceptions import BusinessException, InputException
 
 logger = logging.get_logger()
 has_inited_jieba = False
+import shlex
 
 
 def try_cut_command(input_string: str, accepted_commands: List[str]) -> List[str]:
@@ -22,9 +23,11 @@ def try_cut_command(input_string: str, accepted_commands: List[str]) -> List[str
 def parse_command(input_string: str, **kwargs):
     accepted_commands = kwargs.get('accepted_commands', [])
     if not input_string:
-        return None, None
-    _split = input_string.strip().strip('/').split(' ')
-    parts = [x.strip() for x in _split]
+        raise InputException('指令不能为空')
+    try:
+        parts = shlex.split(input_string.strip().strip('/'))
+    except ValueError:
+        raise InputException('指令格式不合法')
 
     if len(parts) == 0:
         return None, None, None

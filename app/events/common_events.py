@@ -3,8 +3,9 @@ from typing import List, Dict, Tuple
 
 from botpy import logging
 from botpy.message import GroupMessage, C2CMessage
-from wikipedia import wikipedia
+from wikipedia import wikipedia, PageError
 
+from app.config import accepted_wiki_topics
 from app.events.aunu_events import get_star_party, handle_get_apod
 from app.events.post_events import handle_get_post
 from app.models.Railsystem import Station
@@ -103,7 +104,22 @@ async def handle_get_wiki_summary(message: GroupMessage | C2CMessage, keyword: s
     max_word = 400
     lang = kwargs.get('l', 'zh')
     wikipedia.set_lang(lang)
-    wiki_content = wikipedia.summary(keyword)
-    if wiki_content:
-        wiki_content = replace_forbidden_word(wiki_content)
-        await message.reply(content=wiki_content[0:max_word])
+
+    try:
+        page = wikipedia.page(keyword)
+    except PageError as e:
+        search_result_words = wikipedia.search(keyword)
+        if search_result_words:
+            page = wikipedia.page(search_result_words[0])
+        else:
+            await message.reply(content=f'没有找到任何关于"{keyword}"的内容 使用语言:{lang}')
+            return
+    for category in page.categories:
+        for topic in accepted_wiki_topics:
+            if topic in category:
+                wiki_content = page.summary
+                if wiki_content:
+                    wiki_content = replace_forbidden_word(wiki_content)
+                    await message.reply(content=wiki_content[0:max_word])
+                    return
+    await message.reply(content='这是不能触碰的滑梯')
