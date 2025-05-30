@@ -1,6 +1,8 @@
 import botpy
 from botpy import logging
 from botpy.message import GroupMessage, C2CMessage
+
+from app.events.auth_events import handle_signup, handle_connect_group, handle_validate_connect_group
 from app.events.civil_aviation_events import handle_query_flight, handle_query_airport_weather_report
 from app.events.cma_events import handle_query_radar, handle_query_wiki_climate
 from app.events.common_events import handle_fa, handle_get_wiki_summary
@@ -14,6 +16,7 @@ from app.utils.AsyncLRUCache import AsyncLRUCache
 from app.utils.command_utils import parse_command, find_context_command
 from app.utils.exceptions import exception_handler
 from app.utils.qqbot_utils import get_group_and_user_id
+from app.utils.security_utils import CodeManager
 
 logger = logging.get_logger()
 
@@ -39,18 +42,28 @@ class NextTrainClient(botpy.Client):
         '气候': handle_query_wiki_climate,
         '车票': handle_query_train_price,
         '余票': handle_query_remain_tickets,
+        '关联': handle_validate_connect_group,
+    }
+    private_command_dict = {
+        '注册': handle_signup,
+        '关联': handle_connect_group,
     }
     cache = AsyncLRUCache(maxsize=128)
+    code_manager = CodeManager(ttl_seconds=60)
 
     async def on_ready(self):
         logger.info(f"robot「{self.robot.name}」 on_ready!")
 
     async def on_c2c_message_create(self, message: C2CMessage):
-        await message._api.post_c2c_message(
-            openid=message.author.user_openid,
-            msg_type=0, msg_id=message.id,
-            content=f"我收到了你的消息：{message.content}"
-        )
+        try:
+            command, params, argv = parse_command(message.content, accepted_commands=self.command_dict.keys())
+            if not command:
+                await message.reply(content='目前不支持该指令哦~')
+                return
+            if handler := self.private_command_dict.get(command):
+                await handler(message, *params, **argv, _bot=self)
+        except Exception as e:
+            await exception_handler(message, e)
 
     async def on_group_at_message_create(self, message: GroupMessage) -> None:
         if message.content.strip() == '':
