@@ -1,8 +1,10 @@
 services:
-  app:
+  wechat:
     build: .
+    ports:
+      - "8260:8260"
     env_file:
-      - prod.env
+      - wechat_prod.env
     extra_hosts:
       - "nmtr.online:host-gateway"
     volumes:

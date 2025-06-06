@@ -29,7 +29,7 @@ FROM bot-base
 
 COPY . /app
 WORKDIR /app
-
+RUN pip install uvicorn
 
 RUN mkdir -p /app/data \
     && mkdir -p /app/log \
@@ -37,5 +37,6 @@ RUN mkdir -p /app/data \
     && mkdir -p /app/data/ticket-prices
 RUN pip install --no-cache-dir -r /app/github_requirements.txt
 
+EXPOSE 8260
 # 定义容器启动时运行的命令
-ENTRYPOINT ["python3", "-m","app.main"]
+CMD ["uvicorn", "app.wechat_bot:app", "--host", "0.0.0.0", "--port", "8260"]
