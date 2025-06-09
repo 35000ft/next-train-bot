@@ -88,7 +88,7 @@ async def get_schedule_image(station_name: str, line_name: str, station_id: str,
         await asyncio.sleep(1)
         for i in range(15):
             if os.path.exists(target_file_path):
-                return image_to_base64(target_file_path)
+                return target_file_path
             else:
                 await asyncio.sleep(1)
         raise Exception(f"下载时刻表超时 预期路径:{target_file_path}")
@@ -110,8 +110,3 @@ async def get_train_plan(train_reg_no: str, _date: datetime):
     except Exception as e:
         logger.error(f'Get train plan failed, params:{query_params}', exc_info=e)
         raise Exception("")
-
-
-async def main():
-    x = await get_schedule_image('新街口', '2号线', '13', '2', datetime.now())
-    print(x)

@@ -1,6 +1,6 @@
 import xmltodict
 from pydantic import BaseModel, Field
-from typing import Optional, Self
+from typing import Optional, Self, List
 from dicttoxml import dicttoxml
 
 
@@ -19,6 +19,13 @@ class ReceiveMsgBody(BaseModel):
         return cls(**msg_dict)
 
 
+class WechatMedia(BaseModel):
+    type: str
+    media_id: str
+    created_at: int
+    item: Optional[List] = []  # 默认为空列表，可以根据需要调整类型
+
+
 class ResponseMsgBody(BaseModel):
     ToUserName: Optional[str] = Field(None, description="接收方帐号（收到的OpenID）")
     FromUserName: Optional[str] = Field(None, description="开发者微信号")
@@ -26,6 +33,23 @@ class ResponseMsgBody(BaseModel):
     MsgType: Optional[str] = Field(None, description="消息类型")
     Content: Optional[str] = Field(None, description="文本消息的消息体")
 
+    def __setattr__(self, name, value):
+        if name not in self.__dict__:
+            self.__dict__[name] = value
+        else:
+            super().__setattr__(name, value)
+
     def to_xml(self):
         xml_bytes = dicttoxml(self.model_dump(), custom_root='xml', attr_type=False)
         return xml_bytes
+
+    class Config:
+        extra = 'allow'
+
+    def set_media(self, media_info: WechatMedia) -> Self:
+        media_type: str = media_info.media_type
+        media_type = media_type[0].upper() + media_type[1:]
+        self[media_type] = {
+            'MediaId': media_info.media_id,
+        }
+        return self

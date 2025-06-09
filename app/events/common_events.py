@@ -7,7 +7,6 @@ from wikipedia import wikipedia, PageError
 
 from app.config import accepted_wiki_topics
 from app.events.aunu_events import get_star_party, handle_get_apod
-from app.events.post_events import handle_get_post
 from app.models.Railsystem import Station
 from app.schemas import RailsystemSchemas
 from app.service.personalize_service import get_default_railsystem_code
@@ -87,10 +86,6 @@ async def handle_fa(message: GroupMessage | C2CMessage, *args, **kwargs):
         'starparty': get_star_party,
         'apod': handle_get_apod
     }
-    if fa_type not in accepted_type:
-        await handle_get_post(message, *args, **kwargs)
-        return
-
     _handle_func = accepted_type[fa_type]
     await _handle_func(message, *args[1:], **kwargs)
 

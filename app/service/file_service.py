@@ -18,7 +18,7 @@ ttl = 3600
 logger = logging.get_logger()
 
 
-async def cache_uploaded_file(key: str, media: message.Media, expire_at: float | int = None):
+async def cache_uploaded_file(key: str, media, expire_at: float | int = None):
     now = time.time()
     logger.info(f'cache file key:{key}')
 

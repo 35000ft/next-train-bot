@@ -1,19 +1,16 @@
 import hashlib
 import logging
 import os
-import time
 from typing import Optional
 
-from botpy.message import GroupMessage
+import botpy
 from fastapi import FastAPI, Query
 from fastapi.requests import Request
 from fastapi.responses import Response
 
+from app.bot.next_train_robot import NextTrainClient
 from app.schemas.weixin import ReceiveMsgBody, ResponseMsgBody
-from app.utils.command_utils import parse_command, find_context_command
 from app.utils.common import WechatMessage
-from app.utils.exceptions import exception_handler
-from app.utils.qqbot_utils import get_group_and_user_id
 
 app = FastAPI()
 
@@ -22,6 +19,9 @@ logger = logging.getLogger(__name__)
 
 WECHAT_TOKEN = os.getenv('WECHAT_TOKEN')
 WECHAT_ID = os.getenv('WECHAT_ID')
+
+intents = botpy.Intents(public_messages=True)
+client = NextTrainClient(intents=intents, is_sandbox=True)
 
 
 @app.get("/")
@@ -63,6 +63,5 @@ async def handle_receive_msg(request: Request):
     logger.debug(f'receive msg:{msg.Content} from:{msg.FromUserName}')
 
     message = WechatMessage(msg.FromUserName, {'group_openid': WECHAT_ID, 'to_username': msg.ToUserName})
-    resp = await message.reply()
-
+    resp: ResponseMsgBody = await client.on_group_at_message_create(message)
     return Response(content=resp.to_xml(), media_type="application/xml; charset=UTF-8")

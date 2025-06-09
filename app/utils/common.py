@@ -2,7 +2,7 @@ import time
 
 from botpy.message import GroupMessage
 
-from app.schemas.weixin import ResponseMsgBody
+from app.schemas.weixin import ResponseMsgBody, WechatMedia
 
 
 class WechatMessage(GroupMessage):
@@ -15,11 +15,14 @@ class WechatMessage(GroupMessage):
         self.group_openid = data.get("group_openid", None)
         self.to_username = data.get("to_username", None)
 
-    async def reply(self, **kwargs):
+    async def reply(self, **kwargs) -> ResponseMsgBody:
         resp = ResponseMsgBody(
             ToUserName=self.author.member_openid,
             FromUserName=self.to_username,
             CreateTime=int(time.time()),
             MsgType="text",
             Content=kwargs.get("content", None))
+        if media_info := kwargs.get("media"):
+            if isinstance(media_info, WechatMedia):
+                return resp.set_media(media_info)
         return resp
