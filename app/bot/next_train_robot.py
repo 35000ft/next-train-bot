@@ -34,6 +34,7 @@ class NextTrainClient(botpy.Client):
     async def on_group_at_message_create(self, message: GroupMessage) -> None:
         all_command = [f'{i + 1}. {c}' for i, c in enumerate(self.command_dict.keys())]
         command_str = '\n'.join(all_command)
+        logger.info(f'receive msg:{message.content}')
         try:
             command, params, argv = parse_command(message.content, accepted_commands=self.command_dict.keys())
             if not command:

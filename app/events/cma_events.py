@@ -19,7 +19,7 @@ logger = logging.get_logger()
 
 async def handle_query_radar(message: GroupMessage | C2CMessage, station_name: str, **kwargs):
     img_url = await get_radar_image(station_name)
-    media_info = upload_media(media_type='image', media_url=img_url)
+    media_info = await upload_media(media_type='image', media_url=img_url)
     return message.reply(media_info=media_info)
 
 

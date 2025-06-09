@@ -21,7 +21,7 @@ WECHAT_TOKEN = os.getenv('WECHAT_TOKEN')
 WECHAT_ID = os.getenv('WECHAT_ID')
 
 intents = botpy.Intents(public_messages=True)
-client = NextTrainClient(intents=intents, is_sandbox=True)
+bot_instance = NextTrainClient(intents=intents, is_sandbox=True)
 
 
 @app.get("/")
@@ -62,6 +62,7 @@ async def handle_receive_msg(request: Request):
         return Response(content="Invalid Message Format", status_code=422)
     logger.debug(f'receive msg:{msg.Content} from:{msg.FromUserName}')
 
-    message = WechatMessage(msg.FromUserName, {'group_openid': WECHAT_ID, 'to_username': msg.ToUserName})
-    resp: ResponseMsgBody = await client.on_group_at_message_create(message)
+    message = WechatMessage(msg.FromUserName,
+                            {'group_openid': WECHAT_ID, 'to_username': msg.ToUserName, 'content': msg.Content})
+    resp: ResponseMsgBody = await bot_instance.on_group_at_message_create(message)
     return Response(content=resp.to_xml(), media_type="application/xml; charset=UTF-8")

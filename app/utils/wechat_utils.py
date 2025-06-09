@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import mimetypes
 import os
 import time
 from datetime import datetime
@@ -63,25 +64,42 @@ async def upload_media(media_type: str = 'image', media_url: str = None, media_p
             # 如果提供了media_path，则直接读取本地文件
             if not os.path.exists(media_path):
                 raise FileNotFoundError(f"The file at {media_path} does not exist.")
-            files = {'media': (filename or os.path.basename(media_path), open(media_path, 'rb'))}
+            filename = filename or os.path.basename(media_path)
+            name, extension = os.path.splitext(media_path)
+            if not extension:
+                extension = mimetypes.guess_extension(media_path)
+                filename += extension
+            files = {'media': (filename, open(media_path, 'rb'))}
         elif media_url:
             # 如果提供了media_url，则需要下载文件
             response = await _client.get(media_url)
             if response.status_code != 200:
                 raise Exception(f"Failed to download file from {media_url}, status code: {response.status_code}")
-            files = {'media': (filename or 'downloaded_file', response.content)}
+            content_type = response.headers.get('Content-Type')
+            if content_type:
+                mime_type = content_type.split(';')[0]
+                extension = mimetypes.guess_extension(mime_type)
+            files = {'media': (filename or f'downloaded_file.{extension}', response.content)}
         else:
             raise ValueError("Either media_path or media_url must be provided.")
         resp = await _client.post(url,
                                   headers={'User-Agent': 'Mozilla/5.0', 'Content-Type': 'multipart/form-data;', },
                                   files=files)
         resp.raise_for_status()
-
-    for file in files.values():
-        file[1].close()
-
+        j_obj = resp.json()
+        if 'errcode' in j_obj:
+            logger.error(f'upload media failed, err:{j_obj}')
+            raise Exception(f'Failed to upload media,{j_obj}')
     media_info: WechatMedia = WechatMedia(**resp.json())
     if cache_file:
         cache_key = kwargs.get('cache_key', media_path or media_url)
         expire_at = kwargs.get('expire_at', end_of_date_timestamp(_date=datetime.now()))
         await cache_uploaded_file(key=cache_key, media=media_info, expire_at=expire_at)
+
+
+async def main():
+    u = 'https://th.bing.com/th/id/OIP.ZhnXbjmfEN-_TcZTlbq9xQHaNO?w=232&h=414&c=7&o=5&pid=1.20'
+    await upload_media(media_type='image', media_url=u)
+
+
+asyncio.run(main())

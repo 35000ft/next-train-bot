@@ -14,6 +14,7 @@ class WechatMessage(GroupMessage):
         self.author = self._User(user_dict)
         self.group_openid = data.get("group_openid", None)
         self.to_username = data.get("to_username", None)
+        self.content = data.get("content", None)
 
     async def reply(self, **kwargs) -> ResponseMsgBody:
         resp = ResponseMsgBody(
