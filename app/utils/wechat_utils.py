@@ -42,7 +42,7 @@ async def get_access_token():
 
 
 async def upload_media(media_type: str = 'image', media_url: str = None, media_path: str = None,
-                       cache_file=True, **kwargs) -> dict:
+                       cache_file=True, **kwargs) -> WechatMedia:
     """
     上传临时文件到公众号
     :param cache_file: 是否缓存文件
@@ -90,16 +90,9 @@ async def upload_media(media_type: str = 'image', media_url: str = None, media_p
         if 'errcode' in j_obj:
             logger.error(f'upload media failed, err:{j_obj}')
             raise Exception(f'Failed to upload media,{j_obj}')
-    media_info: WechatMedia = WechatMedia(**resp.json())
+    media_info: WechatMedia = WechatMedia(**j_obj)
     if cache_file:
         cache_key = kwargs.get('cache_key', media_path or media_url)
         expire_at = kwargs.get('expire_at', end_of_date_timestamp(_date=datetime.now()))
         await cache_uploaded_file(key=cache_key, media=media_info, expire_at=expire_at)
-
-
-async def main():
-    u = 'https://th.bing.com/th/id/OIP.ZhnXbjmfEN-_TcZTlbq9xQHaNO?w=232&h=414&c=7&o=5&pid=1.20'
-    await upload_media(media_type='image', media_url=u)
-
-
-asyncio.run(main())
+    return media_info

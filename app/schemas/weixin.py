@@ -1,7 +1,8 @@
-import xmltodict
-from pydantic import BaseModel, Field
 from typing import Optional, Self, List
+
+import xmltodict
 from dicttoxml import dicttoxml
+from pydantic import BaseModel, Field
 
 
 class ReceiveMsgBody(BaseModel):
@@ -25,6 +26,18 @@ class WechatMedia(BaseModel):
     created_at: int
     item: Optional[List] = []  # 默认为空列表，可以根据需要调整类型
 
+    def __setattr__(self, name, value):
+        if name in self.__dict__:
+            super().__setattr__(name, value)
+        else:
+            self.__dict__[name] = value
+
+    def __getattr__(self, name):
+        return self.__dict__.get(name, None)
+
+    class Config:
+        extra = 'allow'
+
 
 class ResponseMsgBody(BaseModel):
     ToUserName: Optional[str] = Field(None, description="接收方帐号（收到的OpenID）")
@@ -32,12 +45,15 @@ class ResponseMsgBody(BaseModel):
     CreateTime: Optional[int] = Field(None, description="消息创建时间")
     MsgType: Optional[str] = Field(None, description="消息类型")
     Content: Optional[str] = Field(None, description="文本消息的消息体")
+    Image: Optional[dict] = None
+    Voice: Optional[dict] = None
+    Video: Optional[dict] = None
 
     def __setattr__(self, name, value):
-        if name not in self.__dict__:
-            self.__dict__[name] = value
-        else:
+        if name in self.__dict__:
             super().__setattr__(name, value)
+        else:
+            self.__dict__[name] = value
 
     def to_xml(self):
         xml_bytes = dicttoxml(self.model_dump(), custom_root='xml', attr_type=False)
@@ -47,9 +63,10 @@ class ResponseMsgBody(BaseModel):
         extra = 'allow'
 
     def set_media(self, media_info: WechatMedia) -> Self:
-        media_type: str = media_info.media_type
+        media_type: str = media_info.type
         media_type = media_type[0].upper() + media_type[1:]
-        self[media_type] = {
+        self.MsgType = media_type
+        setattr(self, media_type, {
             'MediaId': media_info.media_id,
-        }
+        })
         return self

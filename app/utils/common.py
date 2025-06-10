@@ -25,5 +25,5 @@ class WechatMessage(GroupMessage):
             Content=kwargs.get("content", None))
         if media_info := kwargs.get("media"):
             if isinstance(media_info, WechatMedia):
-                return resp.set_media(media_info)
+                resp.set_media(media_info)
         return resp

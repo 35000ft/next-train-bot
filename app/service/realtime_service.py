@@ -44,7 +44,7 @@ async def get_station_realtime(station_id: str, line_ids: List[str]) -> Dict[str
         return None
 
 
-async def get_schedule_image(station_name: str, line_name: str, station_id: str, line_id: str, _date: datetime):
+async def get_schedule_image(station_name: str, line_name: str, station_id: str, line_id: str, _date: datetime) -> str:
     filename = f'{station_name}-{line_name}_schedule.png'
     download_dir = os.path.join(os.getenv('WORK_DIR'), f'data/schedules/{_date.strftime("%Y-%m-%d")}')
     if 'win' in sys.platform.lower():
@@ -52,7 +52,7 @@ async def get_schedule_image(station_name: str, line_name: str, station_id: str,
     target_file_path = os.path.join(download_dir, filename)
 
     if os.path.exists(target_file_path):
-        return image_to_base64(target_file_path)
+        return target_file_path
     if not os.path.exists(download_dir):
         os.makedirs(download_dir)
 

@@ -22,7 +22,7 @@ async def cache_uploaded_file(key: str, media, expire_at: float | int = None):
     now = time.time()
     logger.info(f'cache file key:{key}')
 
-    media['expires_at'] = expire_at or now + ttl
+    media.expires_at = expire_at or now + ttl
 
     # If key already exists, update its media information
     if key in uploaded_file_cache:
@@ -35,7 +35,7 @@ async def cache_uploaded_file(key: str, media, expire_at: float | int = None):
         return
 
     # Remove expired entries first.
-    expired_keys = [k for k, m in uploaded_file_cache.items() if m['expires_at'] <= now]
+    expired_keys = [k for k, m in uploaded_file_cache.items() if m.expires_at <= now]
     for k in expired_keys:
         del uploaded_file_cache[k]
 
@@ -45,7 +45,7 @@ async def cache_uploaded_file(key: str, media, expire_at: float | int = None):
         return
 
     # Cache is still full: find and evict the entry that will expire the soonest.
-    evict_key = min(uploaded_file_cache, key=lambda k: uploaded_file_cache[k]['expires_at'])
+    evict_key = min(uploaded_file_cache, key=lambda k: uploaded_file_cache[k].expires_at)
     del uploaded_file_cache[evict_key]
 
     # Finally, add the new media.
@@ -59,11 +59,11 @@ async def get_cached_uploaded_file(key: str) -> message.Media | None:
     _cached = uploaded_file_cache.get(key, None)
     if not _cached:
         return None
-    if not _cached['expires_at']:
+    if not _cached.expires_at:
         clean_expired()
         return None
-    expires_at_ = _cached["expires_at"]
-    if _cached['expires_at'] < now:
+    expires_at_ = _cached.expires_at
+    if _cached.expires_at < now:
         logger.info(f'Cache key {key} expired, at {expires_at_}')
         return None
     logger.info(
@@ -74,7 +74,7 @@ async def get_cached_uploaded_file(key: str) -> message.Media | None:
 def clean_expired():
     now = time.time()
     for k in uploaded_file_cache.keys():
-        expires_at = uploaded_file_cache[k]['expires_at']
+        expires_at = uploaded_file_cache[k].expires_at
         if not expires_at:
             del uploaded_file_cache[k]
         if expires_at < now:

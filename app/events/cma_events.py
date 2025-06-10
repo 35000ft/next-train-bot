@@ -20,7 +20,7 @@ logger = logging.get_logger()
 async def handle_query_radar(message: GroupMessage | C2CMessage, station_name: str, **kwargs):
     img_url = await get_radar_image(station_name)
     media_info = await upload_media(media_type='image', media_url=img_url)
-    return message.reply(media_info=media_info)
+    return await message.reply(media=media_info)
 
 
 async def handle_query_wiki_climate(message: GroupMessage | C2CMessage, city_name: str, **kwargs):
@@ -57,7 +57,7 @@ async def handle_query_wiki_climate(message: GroupMessage | C2CMessage, city_nam
             dom_to_image(table_elements[0], save_path=save_path, size=(1000, 680), )
         except Exception as e:
             logger.error(e)
-            return await message.reply(content='生产气候图失败')
+            return await message.reply(content='生成气候图失败')
         return await reply_image_message(image_path=save_path, message=message, text=f'{city_name}气候')
     except Exception as e:
         logger.error(e)

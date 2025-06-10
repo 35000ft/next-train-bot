@@ -1,9 +1,9 @@
 import hashlib
-import logging
 import os
 from typing import Optional
 
 import botpy
+from botpy import logging
 from fastapi import FastAPI, Query
 from fastapi.requests import Request
 from fastapi.responses import Response
@@ -12,10 +12,9 @@ from app.bot.next_train_robot import NextTrainClient
 from app.schemas.weixin import ReceiveMsgBody, ResponseMsgBody
 from app.utils.common import WechatMessage
 
-app = FastAPI()
+logger = logging.get_logger()
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+app = FastAPI()
 
 WECHAT_TOKEN = os.getenv('WECHAT_TOKEN')
 WECHAT_ID = os.getenv('WECHAT_ID')
@@ -31,21 +30,14 @@ def check_signature(
         nonce: str = Query(...),
         echostr: Optional[str] = Query(None)
 ):
-    logger.info(f"signature = {signature}")
-    logger.info(f"timestamp = {timestamp}")
-    logger.info(f"nonce = {nonce}")
-    logger.info(f"echostr = {echostr}")
-
     # 第一步：自然排序
     tmp = sorted([WECHAT_TOKEN, timestamp, nonce])
 
     # 第二步：sha1 加密
     source_str = ''.join(tmp)
     local_signature = hashlib.sha1(source_str.encode('utf-8')).hexdigest()
-    logger.info(f'signature:{signature} local_signature:{local_signature}')
     # 第三步：验证签名
     if signature == local_signature:
-        logger.info('validate signature ok')
         return Response(content=echostr or "", media_type="text/plain")
     return None
 
@@ -60,9 +52,8 @@ async def handle_receive_msg(request: Request):
         msg = ReceiveMsgBody.from_xml(xml_str)
     except Exception as e:
         return Response(content="Invalid Message Format", status_code=422)
-    logger.debug(f'receive msg:{msg.Content} from:{msg.FromUserName}')
-
     message = WechatMessage(msg.FromUserName,
                             {'group_openid': WECHAT_ID, 'to_username': msg.ToUserName, 'content': msg.Content})
     resp: ResponseMsgBody = await bot_instance.on_group_at_message_create(message)
+    logger.info(f'response:{resp.to_xml()}')
     return Response(content=resp.to_xml(), media_type="application/xml; charset=UTF-8")

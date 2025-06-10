@@ -129,7 +129,7 @@ async def handle_get_station_schedule(message: GroupMessage | C2CMessage, statio
         return await message.reply(content=f'获取车站:{station.name} 时刻表失败')
 
     media_info = await upload_media(media_type='image', media_path=filepath)
-    return message.reply(media_info=media_info, content=f'{station.name}-{line.name} 时刻表')
+    return await message.reply(media=media_info, content=f'{station.name}-{line.name} 时刻表')
 
 
 async def handle_query_price(message: GroupMessage | C2CMessage, *station_names, **kwargs):
