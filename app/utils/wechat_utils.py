@@ -11,24 +11,36 @@ from app.schemas.weixin import WechatMedia
 from app.service.file_service import cache_uploaded_file
 from app.utils.time_utils import end_of_date_timestamp
 
-appid = os.getenv('WECHAT_ID')
-app_secret = os.getenv('APPSECRET')
-access_token = {
-    'token': None,
-    'expire_time': 0,
-}
-
+token_store = {}
 get_token_lock = asyncio.Lock()
 
 logger = logging.getLogger(__name__)
 
 
-async def get_access_token():
+def load_account_info(account: str) -> dict:
+    token = os.getenv(f'{account}_WECHAT_TOKEN')
+    wechat_id = os.getenv(f'{account}_WECHAT_ID')
+    appsecret = os.getenv(f'{account}_APPSECRET')
+    if not token or not wechat_id:
+        raise Exception('account is not valid, cause no wechat token or wechat id provided')
+    return {
+        'wechat_token': token,
+        'wechat_id': wechat_id,
+        'appsecret': appsecret,
+    }
+
+
+async def get_access_token(account_info: dict):
     # 校验过期时间
     current_time = time.time()
+    access_token = token_store.get(account_info['wechat_id'], {
+        'token': None,
+        'expire_time': 0,
+    })
+
     if access_token['token'] and current_time < access_token['expire_time']:
         return access_token['token']
-    url = f'https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid={appid}&secret={app_secret}'
+    url = f'https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid={account_info['wechat_id']}&secret={account_info['appsecret']}'
     resp = httpx.get(url, headers={'User-Agent': 'Mozilla/5.0'})
     async with get_token_lock:
         try:
@@ -36,6 +48,7 @@ async def get_access_token():
             j_obj = resp.json()
             access_token['token'] = j_obj['access_token']
             access_token['expire_time'] = time.time() + j_obj['expires_in']
+            token_store[account_info['wechat_id']] = access_token
             return access_token['token']
         except Exception as e:
             logger.error(f'get access_token failed, err:{e}', )
@@ -56,7 +69,7 @@ async def upload_media(media_type: str = 'image', media_url: str = None, media_p
         "item": [ ]
         }
     """
-    token = await get_access_token()
+    token = await get_access_token(kwargs.get('account'))
     filename = kwargs.get('filename')
     url = f'https://api.weixin.qq.com/cgi-bin/media/upload?access_token={token}&type={media_type}'
     async with httpx.AsyncClient() as _client:

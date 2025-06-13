@@ -13,6 +13,7 @@ from pydantic import BaseModel
 from china_railway_tools.api.train import *
 from tabulate import tabulate
 
+from app.utils.common import command_wrapper
 from app.utils.time_utils import get_now
 
 _headers = {
@@ -28,6 +29,7 @@ class EmuTrain(BaseModel):
     train_no: str
 
 
+@command_wrapper(help='担当 G7001')
 async def handle_query_emu_no(message: GroupMessage | C2CMessage, train_no: str, **kwargs):
     if train_no[0:1] not in ['D', 'C', 'G', 'S']:
         await message.reply(content=f'不支持的车次:{train_no}')

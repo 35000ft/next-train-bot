@@ -15,6 +15,7 @@ from app.events.civil_aviation.SZXFetcher import SZXFetcher
 from app.events.civil_aviation.Schemas import QueryFlightForm, FlightInfo
 from app.events.civil_aviation.ShanghaiFetcher import SHAFetcher, PVGFetcher
 from app.events.civil_aviation.aviation_weather import get_airport_weather_report
+from app.utils.common import command_wrapper
 
 logger = logging.get_logger()
 
@@ -107,6 +108,7 @@ async def handle_query_flight(message: GroupMessage | C2CMessage, airport: str =
     await message.reply(content=content, msg_seq=2)
 
 
+@command_wrapper(help='报文 ZSNJ(机场ICAO代码)')
 async def handle_query_airport_weather_report(message: GroupMessage | C2CMessage, icao_code: str = 'ZSNJ', **kwargs):
     if not re.match('[A-Za-z]{4}', icao_code):
         await message.reply(content='请输入机场ICAO代码 如:ZSNJ')

@@ -8,15 +8,16 @@ from app.events.common_events import handle_get_station_by_name
 from app.events.daily_ticket_events import handle_njmtr_daily_ticket
 from app.schemas import RailsystemSchemas
 from app.schemas.RailsystemSchemas import TrainInfo
-from app.service.file_service import cache_uploaded_file, get_cached_uploaded_file
+from app.service.file_service import get_cached_uploaded_file
 from app.service.realtime_service import get_station_realtime, get_schedule_image
 from app.service.ticket_price_service import query_ticket_price
 from app.utils import time_utils
 from app.utils.command_utils import save_context_command
+from app.utils.common import command_wrapper
+from app.utils.exceptions import InputException
 from app.utils.forbidden_words import check_params_contains_forbidden_word
-from app.utils.message_utils import post_group_base64_file
 from app.utils.qqbot_utils import get_group_and_user_id
-from app.utils.time_utils import get_now, end_of_date_timestamp
+from app.utils.time_utils import get_now
 from app.utils.time_utils import get_offset_from_str
 from app.utils.wechat_utils import upload_media
 
@@ -86,7 +87,7 @@ async def handle_get_station_realtime_core(message, station: RailsystemSchemas.S
     return await message.reply(content=content, msg_seq=2)
 
 
-@check_params_contains_forbidden_word("station_name")
+@command_wrapper(help='实时 新街口')
 async def handle_get_station_realtime(message: GroupMessage | C2CMessage, station_name: str, **kwargs):
     r: Tuple[RailsystemSchemas.Station, Dict[str, RailsystemSchemas.Line]] = \
         await (handle_get_station_by_name(message, station_name, msg_seq=1, command_name='实时', **kwargs))
@@ -95,6 +96,7 @@ async def handle_get_station_realtime(message: GroupMessage | C2CMessage, statio
     return await handle_get_station_realtime_core(message, station, line_dict)
 
 
+@command_wrapper(help='时刻表 新街口 2(可选, 指定线路)')
 async def handle_get_station_schedule(message: GroupMessage | C2CMessage, station_name: str, line_code: str = None,
                                       **kwargs):
     group_id, user_id = get_group_and_user_id(message)
@@ -132,14 +134,14 @@ async def handle_get_station_schedule(message: GroupMessage | C2CMessage, statio
     return await message.reply(media=media_info, content=f'{station.name}-{line.name} 时刻表')
 
 
+@command_wrapper(help='票价 新街口 南京南站 [更多车站...]')
 async def handle_query_price(message: GroupMessage | C2CMessage, *station_names, **kwargs):
     if len(station_names) <= 1:
-        return await message.reply(content='至少要传入两个车站哦')
+        raise InputException('至少要传入两个车站哦')
 
     max_station_len = kwargs.get('max_station_len', 6)
     if len(station_names) > max_station_len:
-        await message.reply(content=f"最多支持{max_station_len - 1}段行程哦")
-        return
+        raise InputException(f"最多支持{max_station_len - 1}段行程哦")
     all_stations = []
     total_price = 0
     for i in range(0, len(station_names) - 1):
@@ -168,6 +170,7 @@ async def handle_query_price(message: GroupMessage | C2CMessage, *station_names,
     return await message.reply(content=content, msg_seq=2)
 
 
+@command_wrapper(help='日票 高淳')
 async def handle_daily_ticket(message: GroupMessage | C2CMessage, station_name: str, **kwargs):
     r: Tuple[RailsystemSchemas.Station, Dict[str, RailsystemSchemas.Line]] = \
         await (handle_get_station_by_name(message, station_name, command_name='日票', msg_seq=1, **kwargs))

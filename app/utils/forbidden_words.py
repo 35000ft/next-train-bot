@@ -1,6 +1,5 @@
 import functools
 import inspect
-import re
 
 from app import config
 from app.utils.exceptions import InputException

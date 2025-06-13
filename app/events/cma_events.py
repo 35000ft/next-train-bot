@@ -9,6 +9,7 @@ from wikipedia import wikipedia, PageError, DisambiguationError
 
 from app.events.cma_weather.radar import get_radar_image
 from app.utils.command_utils import save_context_command
+from app.utils.common import command_wrapper
 from app.utils.html_utils import dom_to_image
 from app.utils.message_utils import reply_image_message
 from app.utils.qqbot_utils import get_group_and_user_id
@@ -17,9 +18,10 @@ from app.utils.wechat_utils import upload_media
 logger = logging.get_logger()
 
 
+@command_wrapper(help='雷达南京')
 async def handle_query_radar(message: GroupMessage | C2CMessage, station_name: str, **kwargs):
     img_url = await get_radar_image(station_name)
-    media_info = await upload_media(media_type='image', media_url=img_url)
+    media_info = await upload_media(media_type='image', media_url=img_url, **kwargs)
     return await message.reply(media=media_info)
 
 

@@ -1,3 +1,4 @@
+import asyncio
 import hashlib
 import os
 from typing import Optional
@@ -11,6 +12,7 @@ from fastapi.responses import Response
 from app.bot.next_train_robot import NextTrainClient
 from app.schemas.weixin import ReceiveMsgBody, ResponseMsgBody
 from app.utils.common import WechatMessage
+from app.utils.wechat_utils import load_account_info
 
 logger = logging.get_logger()
 
@@ -24,14 +26,16 @@ bot_instance = NextTrainClient(intents=intents, is_sandbox=True)
 
 
 @app.get("/")
-def check_signature(
+async def check_signature(
         signature: str = Query(...),
         timestamp: str = Query(...),
         nonce: str = Query(...),
-        echostr: Optional[str] = Query(None)
+        echostr: Optional[str] = Query(None),
+        account: str = Query(...)
 ):
+    account_info = load_account_info(account)
     # 第一步：自然排序
-    tmp = sorted([WECHAT_TOKEN, timestamp, nonce])
+    tmp = sorted([account_info.get('wechat_token'), timestamp, nonce])
 
     # 第二步：sha1 加密
     source_str = ''.join(tmp)
@@ -43,8 +47,8 @@ def check_signature(
 
 
 @app.post("/")
-async def handle_receive_msg(request: Request):
-    # 读取原始 XML 数据
+async def handle_receive_msg(request: Request, account: str = Query(...)):
+    account_info = load_account_info(account)
     body_bytes = await request.body()
     xml_str = body_bytes.decode("utf-8")
 
@@ -53,7 +57,8 @@ async def handle_receive_msg(request: Request):
     except Exception as e:
         return Response(content="Invalid Message Format", status_code=422)
     message = WechatMessage(msg.FromUserName,
-                            {'group_openid': WECHAT_ID, 'to_username': msg.ToUserName, 'content': msg.Content})
-    resp: ResponseMsgBody = await bot_instance.on_group_at_message_create(message)
+                            {'group_openid': account_info['wechat_id'], 'to_username': msg.ToUserName,
+                             'content': msg.Content})
+    resp: ResponseMsgBody = await bot_instance.on_group_at_message_create(message, account=account_info)
     logger.info(f'response:{resp.to_xml()}')
     return Response(content=resp.to_xml(), media_type="application/xml; charset=UTF-8")

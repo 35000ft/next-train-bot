@@ -1,8 +1,31 @@
+import functools
 import time
 
 from botpy.message import GroupMessage
 
 from app.schemas.weixin import ResponseMsgBody, WechatMedia
+from app.utils.exceptions import InputException
+
+
+def command_wrapper(**kwargs):
+    def decorator(func):
+        func.__help = kwargs.get('help')
+
+        @functools.wraps(func)
+        async def wrapper(*args, **_kwargs):
+            message: GroupMessage = args[0]
+            try:
+                return await func(*args, **_kwargs)
+            except TypeError as e:
+                _help = kwargs.get('help')
+                return await message.reply(content=f'指令格式有误，样例:{_help}')
+            except InputException as e:
+                _help = kwargs.get('help')
+                return await message.reply(content=f'{e.message}，样例:{_help}')
+
+        return wrapper
+
+    return decorator
 
 
 class WechatMessage(GroupMessage):
