@@ -1,10 +1,13 @@
 import functools
 import time
 
+from botpy import logging
 from botpy.message import GroupMessage
 
 from app.schemas.weixin import ResponseMsgBody, WechatMedia
 from app.utils.exceptions import InputException
+
+logger = logging.get_logger()
 
 
 def command_wrapper(**kwargs):
@@ -17,8 +20,13 @@ def command_wrapper(**kwargs):
             try:
                 return await func(*args, **_kwargs)
             except TypeError as e:
-                _help = kwargs.get('help')
-                return await message.reply(content=f'指令格式有误，样例:{_help}')
+                error_msg = str(e)
+                if "missing" in error_msg and "required positional argument" in error_msg:
+                    logger.exception(f'type error:{e}', exc_info=e)
+                    _help = kwargs.get('help')
+                    return await message.reply(content=f'指令格式有误，样例:{_help}')
+                else:
+                    raise e
             except InputException as e:
                 _help = kwargs.get('help')
                 return await message.reply(content=f'{e.message}，样例:{_help}')

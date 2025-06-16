@@ -45,4 +45,4 @@ async def handle_njmtr_daily_ticket(message: GroupMessage | C2CMessage, station:
 
     daily_ticket_info = f"""车站:{station.name} (以下为单程票价，按每日往返计算) \n一日票回本方案:\n{format_station_names(one_day)}\n三日票回本方案:\n{format_station_names(three_day)}
     (一日票20元，三日票45元)"""
-    await message.reply(content=daily_ticket_info, msg_seq=message.msg_seq or 1 + 1)
+    return await message.reply(content=daily_ticket_info, msg_seq=message.msg_seq or 1 + 1)

@@ -114,4 +114,4 @@ async def handle_query_airport_weather_report(message: GroupMessage | C2CMessage
         await message.reply(content='请输入机场ICAO代码 如:ZSNJ')
         return
     report = await get_airport_weather_report(icao_code)
-    await message.reply(content=str(report))
+    return await message.reply(content=str(report))
