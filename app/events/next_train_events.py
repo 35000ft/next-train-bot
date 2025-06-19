@@ -15,7 +15,6 @@ from app.utils import time_utils
 from app.utils.command_utils import save_context_command
 from app.utils.common import command_wrapper
 from app.utils.exceptions import InputException
-from app.utils.forbidden_words import check_params_contains_forbidden_word
 from app.utils.qqbot_utils import get_group_and_user_id
 from app.utils.time_utils import get_now
 from app.utils.time_utils import get_offset_from_str

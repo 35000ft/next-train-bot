@@ -93,7 +93,7 @@ async def get_schedule_image_by_browser(station_id: str, line_id: str,
         await asyncio.sleep(1)
         for i in range(15):
             if os.path.exists(target_file_path):
-                return image_to_base64(target_file_path)
+                return target_file_path
             else:
                 await asyncio.sleep(1)
         raise Exception(f"下载时刻表超时 预期路径:{target_file_path}")
@@ -296,11 +296,14 @@ def gen_station_schedule(schedule_header: dict, line: dict, station_name: str, _
         template = Template(template_str)
         html_str = template.render(**_data)
         hti = Html2Image(output_path=Path('data/temp'))
+        hti.browser.flags = ['--no-sandbox', '--disable-dev-shm-usage', ]
         temp_filename = f'{uuid.uuid4()}.png'
+        temp_file_path = hti.screenshot(html_str=html_str, save_as=temp_filename, size=(480, 2500))
+        if not temp_file_path:
+            raise BusinessException("生成时刻表图片失败")
+        else:
+            temp_file_path = temp_file_path[0]
         try:
-            temp_file_path = Path('data/temp') / temp_filename
-            hti.screenshot(html_str=html_str, save_as=temp_filename, size=(480, 2500))
-
             output_path = kwargs.get('output_dir')
             filename = kwargs.get('filename', f'{uuid.uuid4()}.png')
             if isinstance(output_path, Path):
@@ -308,7 +311,7 @@ def gen_station_schedule(schedule_header: dict, line: dict, station_name: str, _
 
             save_path = os.path.join(output_path, filename)
             crop_bottom_blank(image_path=temp_file_path, save_path=save_path)
-            return os.path.join(save_path, filename)
+            return save_path
         except Exception as e:
             raise e
         finally:
@@ -360,7 +363,7 @@ async def get_schedule_image(station_name: str, line_name: str, station_id: str,
     target_file_path = os.path.join(output_dir, filename)
 
     if os.path.exists(target_file_path):
-        return image_to_base64(target_file_path)
+        return target_file_path
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 

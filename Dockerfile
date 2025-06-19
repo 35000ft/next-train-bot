@@ -34,7 +34,8 @@ RUN pip install uvicorn
 RUN mkdir -p /app/data \
     && mkdir -p /app/log \
     && mkdir -p /app/data/schedules \
-    && mkdir -p /app/data/ticket-prices
+    && mkdir -p /app/data/ticket-prices\
+    && mkdir -p /app/data/templates
 RUN pip install --no-cache-dir -r /app/github_requirements.txt
 
 EXPOSE 8260
