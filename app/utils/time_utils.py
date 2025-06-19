@@ -1,5 +1,6 @@
 import time
 from datetime import datetime, timedelta, timezone
+from typing import List
 
 
 def get_offset_from_str(offset_str):
@@ -40,3 +41,44 @@ def parse_date(_date_str: str) -> datetime:
         except ValueError:
             continue
     raise ValueError(f"无法解析日期字符串：'{_date_str}'，不支持该格式。")
+
+
+def describe_period(period: List[int], day_map: dict = None) -> str:
+    if not day_map or not {1, 2, 3, 4, 5, 6, 7}.issubset(day_map.keys()):
+        day_map = {
+            1: "周一",
+            2: "周二",
+            3: "周三",
+            4: "周四",
+            5: "周五",
+            6: "周六",
+            7: "周日"
+        }
+
+    if not period:
+        return ""
+    # 去重排序
+    period = sorted(set(period))
+    # 找连续段
+    result = []
+    start = period[0]
+    end = period[0]
+
+    for i in range(1, len(period)):
+        if period[i] == end + 1:
+            end = period[i]
+        else:
+            # 添加上一段
+            if start == end:
+                result.append(day_map[start])
+            else:
+                result.append(f"{day_map[start]}~{day_map[end]}")
+            start = end = period[i]
+
+    # 添加最后一段
+    if start == end:
+        result.append(day_map[start])
+    else:
+        result.append(f"{day_map[start]}~{day_map[end]}")
+
+    return ",".join(result)
