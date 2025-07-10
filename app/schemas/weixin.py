@@ -20,11 +20,18 @@ class ReceiveMsgBody(BaseModel):
         return cls(**msg_dict)
 
 
+class Article(BaseModel):
+    Title: str
+    Description: Optional[str] = ''
+    PicUrl: Optional[str] = None
+    Url: str = None
+
+
 class WechatMedia(BaseModel):
     type: str
-    media_id: str
+    media_id: Optional[str] = None
     created_at: int
-    item: Optional[List] = []  # 默认为空列表，可以根据需要调整类型
+    articles: Optional[List[Article]] = []  # 默认为空列表，可以根据需要调整类型
 
     def __setattr__(self, name, value):
         if name in self.__dict__:
@@ -48,6 +55,8 @@ class ResponseMsgBody(BaseModel):
     Image: Optional[dict] = None
     Voice: Optional[dict] = None
     Video: Optional[dict] = None
+    Articles: Optional[dict] = None
+    ArticleCount: Optional[int] = None
 
     def __setattr__(self, name, value):
         if name in self.__dict__:
@@ -66,7 +75,17 @@ class ResponseMsgBody(BaseModel):
         media_type: str = media_info.type
         media_type = media_type[0].upper() + media_type[1:]
         self.MsgType = media_type
-        setattr(self, media_type, {
-            'MediaId': media_info.media_id,
-        })
+        if media_info.media_id:
+            setattr(self, media_type, {
+                'MediaId': media_info.media_id,
+            })
+        if media_info.articles:
+            articles_items = [{'item': x.model_dump()} for x in media_info.articles]
+            if articles_items:
+                setattr(self, media_type, {
+                    'Articles': articles_items,
+                })
+                setattr(self, media_type, {
+                    'ArticleCount': len(articles_items),
+                })
         return self

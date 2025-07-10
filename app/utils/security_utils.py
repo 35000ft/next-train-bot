@@ -1,6 +1,9 @@
+import base64
+import hashlib
 import random
 import string
 import time
+from datetime import datetime
 from typing import Dict
 
 
@@ -24,3 +27,17 @@ class CodeManager:
             del self._store[code]
             return None
         return value
+
+
+def generate_invite_code(secret_key: str, date: str = None, length: int = 8) -> str:
+    if date is None:
+        date = datetime.now().strftime('%Y-%m-%d')
+    raw = f"{date}-{secret_key}"
+
+    # 使用SHA256生成哈希
+    hash_bytes = hashlib.sha256(raw.encode()).digest()
+
+    # 使用 base32 编码（更适合邀请码，不区分大小写）
+    b32_code = base64.b32encode(hash_bytes).decode('utf-8').replace('=', '')
+
+    return b32_code[:length].upper()

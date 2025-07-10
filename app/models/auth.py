@@ -1,8 +1,26 @@
-from sqlalchemy import Column, String, TIMESTAMP, BigInteger, Boolean, func
-from sqlalchemy.orm import declarative_base
+from sqlalchemy import Column, String, TIMESTAMP, BigInteger, Boolean, func, Text, ForeignKey
+from sqlalchemy.orm import relationship
+
+from .base import Base
+
+schema = 'next_train_bot'
 
 
-class BotUser(declarative_base()):
+class UserRole(Base):
+    __tablename__ = 'tb_user_role'
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    role_id = Column(BigInteger, ForeignKey(f'{schema}.tb_role.id'), nullable=False)
+    user_id = Column(BigInteger, ForeignKey(f'{schema}.tb_user.id'), nullable=True)
+    is_active = Column(Boolean, default=True, nullable=True)
+    create_time = Column(TIMESTAMP, server_default=func.current_timestamp(), nullable=True)
+    __table_args__ = {
+        'schema': schema
+    }
+    role = relationship("Role")
+
+
+class BotUser(Base):
     __tablename__ = 'tb_user'
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
@@ -13,15 +31,17 @@ class BotUser(declarative_base()):
     is_active = Column(Boolean, nullable=False)
     create_time = Column(TIMESTAMP, nullable=True, default=func.current_timestamp())
 
+    roles = relationship("UserRole")
+
     def __repr__(self):
         return f"<BotUser(id={self.id}, username='{self.username}', email='{self.email}')>"
 
     __table_args__ = {
-        'schema': 'next_train_bot'
+        'schema': schema
     }
 
 
-class UserGroupRel(declarative_base()):
+class UserGroupRel(Base):
     __tablename__ = "tb_user_group_rel"
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
@@ -31,7 +51,7 @@ class UserGroupRel(declarative_base()):
     group_user_openid = Column(String(255), nullable=False)
 
     __table_args__ = {
-        'schema': 'next_train_bot'
+        'schema': schema
     }
 
     def __repr__(self):
@@ -40,3 +60,45 @@ class UserGroupRel(declarative_base()):
             f"user_openid='{self.user_openid}', group_openid='{self.group_openid}', "
             f"group_user_openid='{self.group_user_openid}')>"
         )
+
+
+class Role(Base):
+    __tablename__ = 'tb_role'
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    name = Column(Text, nullable=True, comment='权限组名称')
+    unikey = Column(String(255), nullable=True)
+    is_active = Column(Boolean, nullable=True, default=True)
+    create_time = Column(TIMESTAMP, server_default=func.current_timestamp(), nullable=True)
+    update_time = Column(TIMESTAMP, nullable=True)
+    __table_args__ = {
+        'schema': schema
+    }
+
+
+class Permission(Base):
+    __tablename__ = 'tb_permission'
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    name = Column(Text, nullable=False)
+    unikey = Column(String(255), nullable=False)
+    param = Column(Text, nullable=True)
+    is_active = Column(Boolean, default=True, nullable=True)
+    create_time = Column(TIMESTAMP, server_default=func.current_timestamp(), nullable=True)
+    update_time = Column(TIMESTAMP, server_default=func.current_timestamp(), nullable=True)
+    __table_args__ = {
+        'schema': schema
+    }
+
+
+class RolePermission(Base):
+    __tablename__ = 'tb_role_permission'
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    role_id = Column(BigInteger, ForeignKey(f'{schema}.tb_role.id'), nullable=False)
+    permission_id = Column(BigInteger, ForeignKey(f'{schema}.tb_permission.id'), nullable=True)
+    is_active = Column(Boolean, default=True, nullable=True)
+    create_time = Column(TIMESTAMP, server_default=func.current_timestamp(), nullable=True)
+    __table_args__ = {
+        'schema': schema
+    }

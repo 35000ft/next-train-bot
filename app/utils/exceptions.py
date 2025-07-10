@@ -14,11 +14,6 @@ class InputException(Exception):
         self.message = message
 
 
-class SomethingExistException(Exception):
-    def __init__(self, message=None):
-        self.message = message
-
-
 async def exception_handler(message: GroupMessage | C2CMessage, exc: Exception):
     if isinstance(exc, InputException):
         return await message.reply(content=f'输入异常:{exc.message}')

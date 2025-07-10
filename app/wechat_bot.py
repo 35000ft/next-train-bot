@@ -1,4 +1,3 @@
-import asyncio
 import hashlib
 import os
 from typing import Optional
@@ -10,7 +9,10 @@ from fastapi.requests import Request
 from fastapi.responses import Response
 
 from app.bot.next_train_robot import NextTrainClient
+from app.config import get_db_session
+from app.models.auth import BotUser
 from app.schemas.weixin import ReceiveMsgBody, ResponseMsgBody
+from app.service.user_service import query_user, get_user_permission
 from app.utils.common import WechatMessage
 from app.utils.wechat_utils import load_account_info
 
@@ -56,9 +58,16 @@ async def handle_receive_msg(request: Request, account: str = Query(...)):
         msg = ReceiveMsgBody.from_xml(xml_str)
     except Exception as e:
         return Response(content="Invalid Message Format", status_code=422)
-    message = WechatMessage(msg.FromUserName,
-                            {'group_openid': account_info['wechat_id'], 'to_username': msg.ToUserName,
-                             'content': msg.Content})
+
+    message = WechatMessage(msg.FromUserName, {'group_openid': account_info['wechat_id'],
+                                               'to_username': msg.ToUserName, 'content': msg.Content})
+    async with get_db_session() as session:
+        bot_user: BotUser = await query_user(session, account=msg.FromUserName)
+        if bot_user:
+            message.bot_user = bot_user
+            permissions = await get_user_permission(session, user_id=bot_user.id)
+            message.permissions = permissions
+
     resp: ResponseMsgBody = await bot_instance.on_group_at_message_create(message, account=account_info)
     logger.info(f'response:{resp.to_xml()}')
     return Response(content=resp.to_xml(), media_type="application/xml; charset=UTF-8")

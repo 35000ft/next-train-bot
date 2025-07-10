@@ -1,9 +1,11 @@
 import functools
+import random
 import time
 
 from botpy import logging
 from botpy.message import GroupMessage
 
+from app.models.auth import BotUser
 from app.schemas.weixin import ResponseMsgBody, WechatMedia
 from app.utils.exceptions import InputException
 
@@ -37,7 +39,7 @@ def command_wrapper(**kwargs):
 
 
 class WechatMessage(GroupMessage):
-    def __init__(self, user_id: str, data: dict, ):
+    def __init__(self, user_id: str, data: dict, bot_user: BotUser = None, permissions=None):
         super().__init__(None, int(time.time()), data)
         user_dict = {
             'member_openid': user_id,
@@ -46,6 +48,8 @@ class WechatMessage(GroupMessage):
         self.group_openid = data.get("group_openid", None)
         self.to_username = data.get("to_username", None)
         self.content = data.get("content", None)
+        self.bot_user = bot_user
+        self.permissions = permissions
 
     async def reply(self, **kwargs) -> ResponseMsgBody:
         resp = ResponseMsgBody(
@@ -58,3 +62,18 @@ class WechatMessage(GroupMessage):
             if isinstance(media_info, WechatMedia):
                 resp.set_media(media_info)
         return resp
+
+
+def generate_username(prefix='', suffix_digits=3) -> str:
+    adjectives = [
+        '红鱼', '蓝🐟', '蓝鱼', '红🐟', 'S1', 'S2', '斗鸡眼', 'S8', 'S9', '香槟鱼', '🐔块', '机鐡仔', '机鐡仔', '玉米虫',
+        '胖青虫', 'S7'
+    ]
+
+    nouns = [
+        '001002', '003004', '005006', '007008', '009010', '011012', '013014', '015016', '017018', '019020', '021022'
+    ]
+    adjective = random.choice(adjectives)
+    noun = random.choice(nouns)
+    number = str(random.randint(0, 10 ** suffix_digits - 1)).zfill(suffix_digits)
+    return f"{prefix}{adjective}{noun}_{number}"
