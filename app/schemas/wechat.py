@@ -1,3 +1,4 @@
+import time
 from typing import Optional, Self, List
 
 import xmltodict
@@ -26,11 +27,21 @@ class Article(BaseModel):
     PicUrl: Optional[str] = None
     Url: str = None
 
+    @classmethod
+    def from_model(cls, model: 'WechatArticle'):
+        return cls(
+            Title=model.title,
+            Description=model.description,
+            PicUrl=model.picurl,
+            Url=model.url,
+        )
+
 
 class WechatMedia(BaseModel):
+    # news:图文 video music voice:语音
     type: str
     media_id: Optional[str] = None
-    created_at: int
+    created_at: int = int(time.time() * 1000)
     articles: Optional[List[Article]] = []  # 默认为空列表，可以根据需要调整类型
 
     def __setattr__(self, name, value):
@@ -55,7 +66,7 @@ class ResponseMsgBody(BaseModel):
     Image: Optional[dict] = None
     Voice: Optional[dict] = None
     Video: Optional[dict] = None
-    Articles: Optional[dict] = None
+    Articles: Optional[List[dict]] = None
     ArticleCount: Optional[int] = None
 
     def __setattr__(self, name, value):
@@ -73,19 +84,15 @@ class ResponseMsgBody(BaseModel):
 
     def set_media(self, media_info: WechatMedia) -> Self:
         media_type: str = media_info.type
-        media_type = media_type[0].upper() + media_type[1:]
         self.MsgType = media_type
+        media_node_name = media_type[0].upper() + media_type[1:]
         if media_info.media_id:
-            setattr(self, media_type, {
+            setattr(self, media_node_name, {
                 'MediaId': media_info.media_id,
             })
         if media_info.articles:
-            articles_items = [{'item': x.model_dump()} for x in media_info.articles]
+            articles_items = [x.model_dump() for x in media_info.articles]
             if articles_items:
-                setattr(self, media_type, {
-                    'Articles': articles_items,
-                })
-                setattr(self, media_type, {
-                    'ArticleCount': len(articles_items),
-                })
+                self.Articles = articles_items
+                self.ArticleCount = len(articles_items)
         return self

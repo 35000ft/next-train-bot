@@ -4,10 +4,11 @@ import mimetypes
 import os
 import time
 from datetime import datetime
+from bs4 import BeautifulSoup
 
 import httpx
 
-from app.schemas.weixin import WechatMedia
+from app.schemas.wechat import WechatMedia, Article
 from app.service.file_service import cache_uploaded_file
 from app.utils.time_utils import end_of_date_timestamp
 
@@ -109,3 +110,24 @@ async def upload_media(media_type: str = 'image', media_url: str = None, media_p
         expire_at = kwargs.get('expire_at', end_of_date_timestamp(_date=datetime.now()))
         await cache_uploaded_file(key=cache_key, media=media_info, expire_at=expire_at)
     return media_info
+
+
+async def get_article(url: str) -> Article:
+    async with httpx.AsyncClient(follow_redirects=True) as client:
+        resp = await client.get(url, headers={
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36',
+        })
+        resp.raise_for_status()
+
+    soup = BeautifulSoup(resp.text, 'html.parser')
+    meta_tag = soup.find('meta', attrs={'property': 'og:title'})
+    title = meta_tag.get('content') if meta_tag else None
+    meta_tag = soup.find('meta', attrs={'name': 'author'})
+    author = meta_tag.get('content') if meta_tag else None
+    meta_tag = soup.find('meta', attrs={'name': 'description'})
+    description = meta_tag.get('content') if meta_tag else ''
+    img_tag = soup.find('img', attrs={'class': 'wx_follow_avatar_pic', 'alt': 'cover_image'})
+    head_img = None
+    if img_tag:
+        head_img = img_tag.get('src')
+    return Article(Description=description, Title=title, PicUrl=head_img, Author=author)

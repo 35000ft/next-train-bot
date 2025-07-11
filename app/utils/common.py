@@ -6,7 +6,7 @@ from botpy import logging
 from botpy.message import GroupMessage
 
 from app.models.auth import BotUser
-from app.schemas.weixin import ResponseMsgBody, WechatMedia
+from app.schemas.wechat import ResponseMsgBody, WechatMedia
 from app.utils.exceptions import InputException
 
 logger = logging.get_logger()

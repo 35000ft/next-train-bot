@@ -11,7 +11,7 @@ from fastapi.responses import Response
 from app.bot.next_train_robot import NextTrainClient
 from app.config import get_db_session
 from app.models.auth import BotUser
-from app.schemas.weixin import ReceiveMsgBody, ResponseMsgBody
+from app.schemas.wechat import ReceiveMsgBody, ResponseMsgBody
 from app.service.user_service import query_user, get_user_permission
 from app.utils.common import WechatMessage
 from app.utils.wechat_utils import load_account_info

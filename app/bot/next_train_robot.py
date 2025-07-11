@@ -7,7 +7,7 @@ from app.events.cma_events import handle_query_radar
 from app.events.cr_events import handle_query_emu_no
 from app.events.next_train_events import handle_get_station_realtime, handle_query_price
 from app.events.next_train_events import handle_get_station_schedule, handle_daily_ticket
-from app.events.wechat_events import handle_query_wechat_article, handle_register
+from app.events.wechat_events import handle_query_wechat_article, handle_register, handle_add_auto_reply_wechat_article
 from app.utils.AsyncLRUCache import AsyncLRUCache
 from app.utils.command_utils import parse_command, find_context_command
 from app.utils.exceptions import exception_handler
@@ -26,6 +26,7 @@ class NextTrainClient(botpy.Client):
         '担当': handle_query_emu_no,
         # '机场大屏': handle_query_flight,
         '推文': handle_query_wechat_article,
+        '添加推文': handle_add_auto_reply_wechat_article,
         '报文': handle_query_airport_weather_report,
         '雷达': handle_query_radar,
         '注册': handle_register,

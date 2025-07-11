@@ -1,14 +1,15 @@
-from sqlalchemy import Column, Integer, String, DateTime, Table, ForeignKey, BigInteger, Text, TIMESTAMP, func
-from sqlalchemy.orm import declarative_base, relationship
+from sqlalchemy import Column, Integer, String, Table, ForeignKey, BigInteger, Text, TIMESTAMP, func
 
-Line_Station = Table('tb_line_station', declarative_base().metadata,
+from .base import Base
+
+Line_Station = Table('tb_line_station', Base.metadata,
                      Column('station_id', Integer, ForeignKey('tb_station.id')),
                      Column('line_id', Integer, ForeignKey('tb_line.id')),
                      Column('station_order', Integer),
                      )
 
 
-class Line(declarative_base()):
+class Line(Base):
     __tablename__ = 'tb_line'
 
     id = Column(Integer, primary_key=True)
@@ -19,7 +20,7 @@ class Line(declarative_base()):
     color = Column(String, nullable=False)
 
 
-class Station(declarative_base()):
+class Station(Base):
     __tablename__ = 'tb_station'
 
     id = Column(Integer, primary_key=True)
@@ -30,7 +31,7 @@ class Station(declarative_base()):
     location = Column(String, nullable=False)
 
 
-class PersonalConfig(declarative_base()):
+class PersonalConfig(Base):
     __tablename__ = 'tb_personal_config'
     __table_args__ = {'schema': 'next_train_bot'}
 
