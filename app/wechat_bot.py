@@ -65,8 +65,6 @@ async def handle_receive_msg(request: Request, account: str = Query(...)):
         bot_user: BotUser = await query_user(session, account=msg.FromUserName)
         if bot_user:
             message.bot_user = bot_user
-            permissions = await get_user_permission(session, user_id=bot_user.id)
-            message.permissions = permissions
 
     resp: ResponseMsgBody = await bot_instance.on_group_at_message_create(message, account=account_info)
     logger.info(f'response:{resp.to_xml()}')

@@ -33,6 +33,7 @@ class BotUser(Base):
 
     roles = relationship("UserRole")
 
+    # permissions
     def __repr__(self):
         return f"<BotUser(id={self.id}, username='{self.username}', email='{self.email}')>"
 

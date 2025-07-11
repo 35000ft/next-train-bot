@@ -4,10 +4,11 @@ from passlib.context import CryptContext
 from sqlalchemy import or_, join, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-
+from app.config import get_db_session
 from app.models.auth import *
 from app.schemas.auth import UserCreate
 from app.utils.AsyncLRUCache import AsyncLRUCache
+from app.utils.common import WechatMessage
 from app.utils.exceptions import BusinessException
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -76,5 +77,17 @@ async def query_user(db: AsyncSession, account: str) -> BotUser:
     result = await db.execute(stmt)
     bot_user = result.scalars().one_or_none()
     if bot_user:
+        permissions = await get_user_permission(db, bot_user.id)
+        setattr(bot_user, 'permissions', permissions)
         await login_users.set(account, bot_user)
     return bot_user
+
+
+async def authorize(message: WechatMessage, permission_key: str, param: str = None) -> bool:
+    if not permission_key:
+        return True
+    bot_user: BotUser = message.bot_user
+    if not bot_user:
+        return False
+    async with get_db_session() as session:
+        permissions = await get_user_permission(session, user_id=bot_user.id)

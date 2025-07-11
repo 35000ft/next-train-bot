@@ -39,7 +39,7 @@ def command_wrapper(**kwargs):
 
 
 class WechatMessage(GroupMessage):
-    def __init__(self, user_id: str, data: dict, bot_user: BotUser = None, permissions=None):
+    def __init__(self, user_id: str, data: dict, bot_user: BotUser = None):
         super().__init__(None, int(time.time()), data)
         user_dict = {
             'member_openid': user_id,
@@ -49,7 +49,6 @@ class WechatMessage(GroupMessage):
         self.to_username = data.get("to_username", None)
         self.content = data.get("content", None)
         self.bot_user = bot_user
-        self.permissions = permissions
 
     async def reply(self, **kwargs) -> ResponseMsgBody:
         resp = ResponseMsgBody(
