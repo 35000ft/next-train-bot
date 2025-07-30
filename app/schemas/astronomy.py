@@ -1,4 +1,3 @@
-import asyncio
 import urllib.parse
 from abc import abstractmethod
 from datetime import datetime
@@ -8,7 +7,8 @@ import httpx
 from pydantic import BaseModel
 
 _headers = {
-    'user-agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0"
+    'user-agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 "
+                  "Safari/537.36 Edg/135.0.0.0"
 }
 
 

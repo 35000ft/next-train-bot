@@ -1,7 +1,7 @@
 import random
 from collections import defaultdict
 
-from app.schemas import RailsystemSchemas
+from app.schemas import railsystem
 from typing import List, Dict, Tuple
 
 from botpy import logging
@@ -12,7 +12,7 @@ from app.service.ticket_price_service import get_station_prices
 logger = logging.get_logger()
 
 
-async def handle_njmtr_daily_ticket(message: GroupMessage | C2CMessage, station: RailsystemSchemas.Station, **kwargs):
+async def handle_njmtr_daily_ticket(message: GroupMessage | C2CMessage, station: railsystem.Station, **kwargs):
     station_prices: Dict[str, str] = await get_station_prices(station.railsystemCode, station.name)
     if not station_prices:
         await message.reply(content=f'无法获取车站:{station.name} 票价表')

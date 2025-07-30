@@ -12,7 +12,8 @@ from app.events.civil_aviation.utils.filters import flight_filter
 logger = logging.get_logger()
 
 headers = {
-    'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36"
+    'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 "
+                  "Safari/537.36"
 }
 
 

@@ -6,8 +6,8 @@ from tabulate import tabulate
 
 from app.events.common_events import handle_get_station_by_name
 from app.events.daily_ticket_events import handle_njmtr_daily_ticket
-from app.schemas import RailsystemSchemas
-from app.schemas.RailsystemSchemas import TrainInfo
+from app.schemas import railsystem
+from app.schemas.railsystem import TrainInfo
 from app.service.file_service import get_cached_uploaded_file
 from app.service.realtime_service import get_station_realtime, get_schedule_image
 from app.service.ticket_price_service import query_ticket_price
@@ -52,8 +52,8 @@ def filter_latest_train_for_each_terminal(train_info_list: List[TrainInfo], **kw
     return result
 
 
-async def handle_get_station_realtime_core(message, station: RailsystemSchemas.Station,
-                                           line_dict: Dict[str, RailsystemSchemas.Line]):
+async def handle_get_station_realtime_core(message, station: railsystem.Station,
+                                           line_dict: Dict[str, railsystem.Line]):
     train_info_dict: Dict[str, List[TrainInfo]] = await get_station_realtime(station.id,
                                                                              line_ids=list(line_dict.keys()))
     if not train_info_dict:
@@ -88,7 +88,7 @@ async def handle_get_station_realtime_core(message, station: RailsystemSchemas.S
 
 @command_wrapper(help='实时 新街口')
 async def handle_get_station_realtime(message: GroupMessage | C2CMessage, station_name: str, **kwargs):
-    r: Tuple[RailsystemSchemas.Station, Dict[str, RailsystemSchemas.Line]] = \
+    r: Tuple[railsystem.Station, Dict[str, railsystem.Line]] = \
         await (handle_get_station_by_name(message, station_name, msg_seq=1, command_name='实时', **kwargs))
     station, line_dict = r
 
@@ -99,7 +99,7 @@ async def handle_get_station_realtime(message: GroupMessage | C2CMessage, statio
 async def handle_get_station_schedule(message: GroupMessage | C2CMessage, station_name: str, line_code: str = None,
                                       **kwargs):
     group_id, user_id = get_group_and_user_id(message)
-    r: Tuple[RailsystemSchemas.Station, Dict[str, RailsystemSchemas.Line]] = \
+    r: Tuple[railsystem.Station, Dict[str, railsystem.Line]] = \
         await (handle_get_station_by_name(message, station_name, msg_seq=1, command_name='时刻表', **kwargs))
     station, line_dict = r
     if len(line_dict) == 0:
@@ -146,10 +146,10 @@ async def handle_query_price(message: GroupMessage | C2CMessage, *station_names,
     for i in range(0, len(station_names) - 1):
         from_station_name = station_names[i]
         to_station_name = station_names[i + 1]
-        from_r: Tuple[RailsystemSchemas.Station, Dict[str, RailsystemSchemas.Line]] = \
+        from_r: Tuple[railsystem.Station, Dict[str, railsystem.Line]] = \
             await (handle_get_station_by_name(message, from_station_name, command_name='票价', msg_seq=1, **kwargs))
 
-        to_r: Tuple[RailsystemSchemas.Station, Dict[str, RailsystemSchemas.Line]] = \
+        to_r: Tuple[railsystem.Station, Dict[str, railsystem.Line]] = \
             await (handle_get_station_by_name(message, to_station_name, command_name='票价', msg_seq=1, **kwargs))
 
         to_station, _ = to_r
@@ -171,7 +171,7 @@ async def handle_query_price(message: GroupMessage | C2CMessage, *station_names,
 
 @command_wrapper(help='日票 高淳')
 async def handle_daily_ticket(message: GroupMessage | C2CMessage, station_name: str, **kwargs):
-    r: Tuple[RailsystemSchemas.Station, Dict[str, RailsystemSchemas.Line]] = \
+    r: Tuple[railsystem.Station, Dict[str, railsystem.Line]] = \
         await (handle_get_station_by_name(message, station_name, command_name='日票', msg_seq=1, **kwargs))
     station, line_dict = r
     railsystem_code = station.railsystemCode

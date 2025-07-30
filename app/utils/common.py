@@ -1,4 +1,5 @@
 import functools
+import importlib
 import random
 import time
 
@@ -38,6 +39,38 @@ def command_wrapper(**kwargs):
     return decorator
 
 
+def dynamic_import(full_path: str):
+    """
+        动态导入模块或模块中的对象。
+        full_path 可以是:
+            - 'package.module' （返回模块）
+            - 'package.module:object' 或 'package.module.object'（返回模块中的对象）
+        """
+    if ':' in full_path:
+        module_path, attr = full_path.split(':', 1)
+    elif '.' in full_path:
+        parts = full_path.split('.')
+        for i in range(len(parts), 0, -1):
+            try:
+                module_path = '.'.join(parts[:i])
+                attr_path = parts[i:]
+                module = importlib.import_module(module_path)
+                obj = module
+                for a in attr_path:
+                    obj = getattr(obj, a)
+                return obj
+            except (ModuleNotFoundError, AttributeError):
+                continue
+        raise ImportError(f"Could not import from path: {full_path}")
+    else:
+        # fallback - just import whole module
+        module_path = full_path
+        attr = None
+
+    module = importlib.import_module(module_path)
+    return getattr(module, attr) if 'attr' in locals() else module
+
+
 class WechatMessage(GroupMessage):
     def __init__(self, user_id: str, data: dict, bot_user: BotUser = None):
         super().__init__(None, int(time.time()), data)
@@ -61,18 +94,3 @@ class WechatMessage(GroupMessage):
             if isinstance(media_info, WechatMedia):
                 resp.set_media(media_info)
         return resp
-
-
-def generate_username(prefix='', suffix_digits=3) -> str:
-    adjectives = [
-        '红鱼', '蓝🐟', '蓝鱼', '红🐟', 'S1', 'S2', '斗鸡眼', 'S8', 'S9', '香槟鱼', '🐔块', '机鐡仔', '机鐡仔', '玉米虫',
-        '胖青虫', 'S7'
-    ]
-
-    nouns = [
-        '001002', '003004', '005006', '007008', '009010', '011012', '013014', '015016', '017018', '019020', '021022'
-    ]
-    adjective = random.choice(adjectives)
-    noun = random.choice(nouns)
-    number = str(random.randint(0, 10 ** suffix_digits - 1)).zfill(suffix_digits)
-    return f"{prefix}{adjective}{noun}_{number}"

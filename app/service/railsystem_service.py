@@ -1,4 +1,3 @@
-import asyncio
 import logging
 import os
 
@@ -10,7 +9,7 @@ from sqlalchemy import select, or_
 
 from app.config import get_db_session
 from app.models.Railsystem import Station
-from app.schemas import RailsystemSchemas
+from app.schemas import railsystem
 
 nmtr_headers = {
     'accept': 'application/json,text/plain',
@@ -88,7 +87,7 @@ async def get_station_detail_byid(station_id: str):
             j_obj = resp.json()
             j_obj = j_obj['data'] if 'data' in j_obj else j_obj
 
-            station = RailsystemSchemas.Station(**j_obj)
+            station = railsystem.Station(**j_obj)
             return station
     except Exception as e:
         logger.warning(f'Get station detail error, station_id:{station_id} err:{e}')

@@ -8,7 +8,7 @@ from wikipedia import wikipedia, PageError
 from app.config import accepted_wiki_topics
 from app.events.aunu_events import get_star_party, handle_get_apod
 from app.models.Railsystem import Station
-from app.schemas import RailsystemSchemas
+from app.schemas import railsystem
 from app.service.personalize_service import get_default_railsystem_code
 from app.service.railsystem_service import get_station_detail_byid, get_station_by_keyword
 from app.utils.command_utils import save_context_command
@@ -20,13 +20,13 @@ logger = logging.get_logger()
 
 
 async def handle_get_station_by_name(message: GroupMessage | C2CMessage, station_name: str, **kwargs) -> (
-        Tuple[RailsystemSchemas.Station, Dict[str, RailsystemSchemas.Line]] | None):
+        Tuple[railsystem.Station, Dict[str, railsystem.Line]] | None):
     now_msg_seq = kwargs.get('msg_seq', 1)
     next_msg_seq = now_msg_seq + 1
-    railsystem: str = kwargs.get('r')
+    _railsystem: str = kwargs.get('r')
     group_id, user_id = get_group_and_user_id(message)
     logger.info(f'group_id: {group_id} user_id: {user_id}')
-    station: List[Station] | Station = await get_station_by_keyword(station_name, railsystem)
+    station: List[Station] | Station = await get_station_by_keyword(station_name, _railsystem)
     if not station:
         raise BusinessException(
             f'暂不支持 {station_name} 这个车站哦。如已设置别名，请通过以下指令查询:\n/{kwargs.get("command_name", "<指令名>")}a {station_name}')
@@ -60,17 +60,17 @@ async def handle_get_station_by_name(message: GroupMessage | C2CMessage, station
                                                         in station], )
             raise BusinessException(content + option_str)
 
-    _station: RailsystemSchemas.Station = await get_station_detail_byid(station.id)
+    _station: railsystem.Station = await get_station_detail_byid(station.id)
     if not _station:
         await message.reply(content=f'获取车站:{station_name} 信息失败', msg_seq=next_msg_seq)
         return
-    line_dict: Dict[str, RailsystemSchemas.Line] = {x.id: x for x in _station.lines}
+    line_dict: Dict[str, railsystem.Line] = {x.id: x for x in _station.lines}
     # 指定线路
     if (given_line_code := kwargs.get('l')) and isinstance(given_line_code, str):
         filtered_lines = list(
             filter(lambda x: x.code == given_line_code or x.name == given_line_code, _station.lines))
         if filtered_lines:
-            line_dict: Dict[str, RailsystemSchemas.Line] = {x.id: x for x in filtered_lines}
+            line_dict: Dict[str, railsystem.Line] = {x.id: x for x in filtered_lines}
 
     return _station, line_dict
 

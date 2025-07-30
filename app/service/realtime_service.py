@@ -20,7 +20,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 
-from app.schemas.RailsystemSchemas import TrainInfo
+from app.schemas.railsystem import TrainInfo
 from app.utils.exceptions import BusinessException
 from app.utils.http_utils import fetch
 from app.utils.img_utils import image_to_base64, crop_bottom_blank

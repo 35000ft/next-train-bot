@@ -1,5 +1,4 @@
 import hashlib
-import os
 from typing import Optional
 
 import botpy
@@ -12,16 +11,13 @@ from app.bot.next_train_robot import NextTrainClient
 from app.config import get_db_session
 from app.models.auth import BotUser
 from app.schemas.wechat import ReceiveMsgBody, ResponseMsgBody
-from app.service.user_service import query_user, get_user_permission
+from app.service.user_service import query_user
 from app.utils.common import WechatMessage
 from app.utils.wechat_utils import load_account_info
 
 logger = logging.get_logger()
 
 app = FastAPI()
-
-WECHAT_TOKEN = os.getenv('WECHAT_TOKEN')
-WECHAT_ID = os.getenv('WECHAT_ID')
 
 intents = botpy.Intents(public_messages=True)
 bot_instance = NextTrainClient(intents=intents, is_sandbox=True)
@@ -57,6 +53,7 @@ async def handle_receive_msg(request: Request, account: str = Query(...)):
     try:
         msg = ReceiveMsgBody.from_xml(xml_str)
     except Exception as e:
+        logger.warning(f'Invalid message:{xml_str}', exc_info=e)
         return Response(content="Invalid Message Format", status_code=422)
 
     message = WechatMessage(msg.FromUserName, {'group_openid': account_info['wechat_id'],

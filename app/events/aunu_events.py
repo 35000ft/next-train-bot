@@ -6,7 +6,7 @@ from async_lru import alru_cache
 from botpy import logging
 from botpy.message import GroupMessage, C2CMessage
 
-from app.schemas.APOD import APOD, BjpApodFetcher, NasaApodFetcher
+from app.schemas.astronomy import APOD, BjpApodFetcher, NasaApodFetcher
 from app.service.file_service import cache_uploaded_file, get_cached_uploaded_file
 from app.utils.time_utils import end_of_date_timestamp, parse_date
 
@@ -45,8 +45,7 @@ async def get_star_party(message: GroupMessage | C2CMessage, target_date_str: st
                 upload_media = await fetch_date(_date)
         except Exception as e:
             logger.error(f"获取starparty失败,err:{e}")
-            await message.reply(content='获取starparty失败')
-            return
+            return await message.reply(content='获取starparty失败')
 
     _temp = cache_upload_media or upload_media
     await message._api.post_group_message(

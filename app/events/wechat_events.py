@@ -10,7 +10,6 @@ from app.schemas.auth import UserCreate
 from app.schemas.wechat import Article, WechatMedia
 from app.service.user_service import create_user
 from app.service.wechat_service import query_articles
-from app.utils.common import command_wrapper, generate_username
 from app.utils.exceptions import BusinessException
 from app.utils.security_utils import generate_invite_code
 from app.utils.wechat_utils import get_article
@@ -22,7 +21,7 @@ async def handle_register(message: GroupMessage, invite_code: str, username: str
     now_invite_code = generate_invite_code('NKG-TRANS')
     if invite_code != now_invite_code:
         return await message.reply(content='邀请码无效')
-    form = UserCreate(username=username or generate_username(), openid=message.author.member_openid)
+    form = UserCreate(username=username, openid=message.author.member_openid)
     try:
         async with get_db_session() as session:
             bot_user: BotUser = await create_user(session, form)
