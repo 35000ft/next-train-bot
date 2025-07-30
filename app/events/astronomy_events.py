@@ -34,7 +34,7 @@ async def get_star_party(message: GroupMessage | C2CMessage, target_date_str: st
 
     cache_upload_media = await get_cached_uploaded_file(cache_key) if not kwargs.get('update') else None
     if cache_upload_media:
-        return await message.reply(media_info=cache_upload_media)
+        return await message.reply(media=cache_upload_media)
     else:
         try:
             if not target_date_str:
@@ -42,7 +42,7 @@ async def get_star_party(message: GroupMessage | C2CMessage, target_date_str: st
             else:
                 _upload_media = await fetch_date(_date)
             if _upload_media:
-                return await message.reply(media_info=_upload_media)
+                return await message.reply(media=_upload_media)
             else:
                 raise Exception
         except Exception as e:
