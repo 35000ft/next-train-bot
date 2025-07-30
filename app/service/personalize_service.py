@@ -104,6 +104,7 @@ async def query_personal_config(category_key: str, user_id: str = None, group_id
             return p
 
 
+@alru_cache(maxsize=64, ttl=3600)
 async def get_command_dict_by_group_id(group_id: str) -> dict:
     try:
         p: dict = await query_personal_config(category_key='GROUP_COMMAND_DICT', group_id=group_id, is_list=False,

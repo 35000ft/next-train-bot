@@ -1,4 +1,3 @@
-import random
 from typing import List, Dict, Tuple
 
 from botpy import logging
@@ -6,7 +5,6 @@ from botpy.message import GroupMessage, C2CMessage
 from wikipedia import wikipedia, PageError
 
 from app.config import accepted_wiki_topics
-from app.events.aunu_events import get_star_party, handle_get_apod
 from app.models.Railsystem import Station
 from app.schemas import railsystem
 from app.service.personalize_service import get_default_railsystem_code
@@ -75,27 +73,11 @@ async def handle_get_station_by_name(message: GroupMessage | C2CMessage, station
     return _station, line_dict
 
 
-async def handle_fa(message: GroupMessage | C2CMessage, *args, **kwargs):
-    if not args:
-        empty_contents = ['发null', '发，发什么发', '发undefined', '发nil', '发NaN', '发疒']
-        await message.reply(content=random.choice(empty_contents), msg_seq=1)
-        return
-
-    fa_type = args[0]
-    accepted_type = {
-        'starparty': get_star_party,
-        'apod': handle_get_apod
-    }
-    _handle_func = accepted_type[fa_type]
-    await _handle_func(message, *args[1:], **kwargs)
-
-
 @check_params_contains_forbidden_word("keyword")
 async def handle_get_wiki_summary(message: GroupMessage | C2CMessage, keyword: str, **kwargs):
     keyword = keyword.strip()
     if not keyword:
-        await message.reply(content='不知道你想查什么')
-        return
+        return await message.reply(content='不知道你想查什么')
     max_word = 400
     lang = kwargs.get('l', 'zh')
     wikipedia.set_lang(lang)
@@ -107,14 +89,12 @@ async def handle_get_wiki_summary(message: GroupMessage | C2CMessage, keyword: s
         if search_result_words:
             page = wikipedia.page(search_result_words[0])
         else:
-            await message.reply(content=f'没有找到任何关于"{keyword}"的内容 使用语言:{lang}')
-            return
+            return await message.reply(content=f'没有找到任何关于"{keyword}"的内容 使用语言:{lang}')
     for category in page.categories:
         for topic in accepted_wiki_topics:
             if topic in category:
                 wiki_content = page.summary
                 if wiki_content:
                     wiki_content = replace_forbidden_word(wiki_content)
-                    await message.reply(content=wiki_content[0:max_word])
-                    return
-    await message.reply(content='这是不能触碰的滑梯')
+                    return await message.reply(content=wiki_content[0:max_word])
+    return await message.reply(content='这是不能触碰的滑梯')

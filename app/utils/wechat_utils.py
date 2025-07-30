@@ -96,8 +96,7 @@ async def upload_media(media_type: str = 'image', media_url: str = None, media_p
             files = {'media': (filename or f'downloaded_file.{extension}', response.content)}
         else:
             raise ValueError("Either media_path or media_url must be provided.")
-        resp = await _client.post(url,
-                                  headers={'User-Agent': 'Mozilla/5.0', 'Content-Type': 'multipart/form-data;', },
+        resp = await _client.post(url, headers={'User-Agent': 'Mozilla/5.0', 'Content-Type': 'multipart/form-data;', },
                                   files=files)
         resp.raise_for_status()
         j_obj = resp.json()

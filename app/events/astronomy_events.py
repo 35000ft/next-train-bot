@@ -7,8 +7,9 @@ from botpy import logging
 from botpy.message import GroupMessage, C2CMessage
 
 from app.schemas.astronomy import APOD, BjpApodFetcher, NasaApodFetcher
-from app.service.file_service import cache_uploaded_file, get_cached_uploaded_file
-from app.utils.time_utils import end_of_date_timestamp, parse_date
+from app.service.file_service import get_cached_uploaded_file
+from app.utils.time_utils import parse_date
+from app.utils.wechat_utils import upload_media
 
 logger = logging.get_logger()
 
@@ -16,15 +17,11 @@ logger = logging.get_logger()
 async def get_star_party(message: GroupMessage | C2CMessage, target_date_str: str = None, **kwargs):
     async def fetch_latest():
         _url = 'http://aunu.steveling.cn/latest.jpg'
-        _upload_media = await message._api.post_group_file(group_openid=message.group_openid, file_type=1,
-                                                           url=_url)
-        return _upload_media
+        return await upload_media(media_url=_url)
 
     async def fetch_date(__date: datetime):
         _url = f'http://oss.steveling.cn/{__date.strftime("%Y%m")}/{__date.day}.jpg'
-        _upload_media = await message._api.post_group_file(group_openid=message.group_openid, file_type=1,
-                                                           url=_url)
-        return _upload_media
+        return await upload_media(media_url=_url)
 
     now_gmt8 = datetime.now(tz=ZoneInfo("Asia/Shanghai"))
     if not target_date_str:
@@ -35,28 +32,22 @@ async def get_star_party(message: GroupMessage | C2CMessage, target_date_str: st
         _date_str: str = _date.strftime("%Y-%m-%d")
     cache_key = f'starparty:{_date_str}'
 
-    upload_media = None
     cache_upload_media = await get_cached_uploaded_file(cache_key) if not kwargs.get('update') else None
-    if not cache_upload_media:
+    if cache_upload_media:
+        return await message.reply(media_info=cache_upload_media)
+    else:
         try:
             if not target_date_str:
-                upload_media = await fetch_latest()
+                _upload_media = await fetch_latest()
             else:
-                upload_media = await fetch_date(_date)
+                _upload_media = await fetch_date(_date)
+            if _upload_media:
+                return await message.reply(media_info=_upload_media)
+            else:
+                raise Exception
         except Exception as e:
             logger.error(f"获取starparty失败,err:{e}")
             return await message.reply(content='获取starparty失败')
-
-    _temp = cache_upload_media or upload_media
-    await message._api.post_group_message(
-        group_openid=message.group_openid,
-        msg_type=7,
-        msg_id=message.id,
-        media=_temp,
-        msg_seq=2,
-    )
-    if upload_media:
-        await cache_uploaded_file(cache_key, upload_media, expire_at=end_of_date_timestamp(now_gmt8))
 
 
 @alru_cache(maxsize=6, ttl=300)

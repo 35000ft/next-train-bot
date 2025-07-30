@@ -11,6 +11,7 @@ from app.bot.next_train_robot import NextTrainClient
 from app.config import get_db_session
 from app.models.auth import BotUser
 from app.schemas.wechat import ReceiveMsgBody, ResponseMsgBody
+from app.service.personalize_service import get_command_dict_by_group_id
 from app.service.user_service import query_user
 from app.utils.common import WechatMessage
 from app.utils.wechat_utils import load_account_info
@@ -63,6 +64,12 @@ async def handle_receive_msg(request: Request, account: str = Query(...)):
         if bot_user:
             message.bot_user = bot_user
 
-    resp: ResponseMsgBody = await bot_instance.on_group_at_message_create(message, account=account_info)
+    try:
+        command_dict: dict = await get_command_dict_by_group_id(group_id=account_info['wechat_id'])
+    except Exception as e:
+        logger.warning(f'Get command dict err, wechat_id:{account_info['wechat_id']}', exc_info=e)
+        command_dict = {}
+    resp: ResponseMsgBody = await bot_instance.on_group_at_message_create(message, account=account_info,
+                                                                          command_dict=command_dict)
     logger.info(f'response:{resp.to_xml()}')
     return Response(content=resp.to_xml(), media_type="application/xml; charset=UTF-8")
