@@ -17,11 +17,11 @@ logger = logging.get_logger()
 async def get_star_party(message: GroupMessage | C2CMessage, target_date_str: str = None, **kwargs):
     async def fetch_latest():
         _url = 'http://aunu.steveling.cn/latest.jpg'
-        return await upload_media(media_url=_url)
+        return await upload_media(media_url=_url, **kwargs)
 
     async def fetch_date(__date: datetime):
         _url = f'http://oss.steveling.cn/{__date.strftime("%Y%m")}/{__date.day}.jpg'
-        return await upload_media(media_url=_url)
+        return await upload_media(media_url=_url, **kwargs)
 
     now_gmt8 = datetime.now(tz=ZoneInfo("Asia/Shanghai"))
     if not target_date_str:
@@ -46,7 +46,7 @@ async def get_star_party(message: GroupMessage | C2CMessage, target_date_str: st
             else:
                 raise Exception
         except Exception as e:
-            logger.error(f"获取starparty失败,err:{e}")
+            logger.error(f"获取starparty失败,err:{e}", exc_info=e)
             return await message.reply(content='获取starparty失败')
 
 
@@ -63,21 +63,12 @@ async def handle_get_apod(message: GroupMessage | C2CMessage, target_date_str: s
         try:
             target_date = parse_date(target_date_str)
         except Exception as e:
-            await message.reply(content='不支持的日期格式')
-            return
+            return await message.reply(content=f'不支持的日期格式:{target_date_str}')
         apod = await get_apod(target_date=target_date, **kwargs)
     else:
         apod = await get_apod(**kwargs)
     if apod:
-        _upload_media = await message._api.post_group_file(group_openid=message.group_openid, file_type=1,
-                                                           url=apod.img_url)
-        await message._api.post_group_message(
-            content=apod.to_bot_reply(),
-            group_openid=message.group_openid,
-            msg_type=7,
-            msg_id=message.id,
-            media=_upload_media,
-            msg_seq=2,
-        )
+        _upload_media = await upload_media(media_url=apod.img_url, **kwargs)
+        return await message.reply(media=_upload_media)
     else:
-        await message.reply(content='找不到这个apod')
+        return await message.reply(content='找不到这个apod')

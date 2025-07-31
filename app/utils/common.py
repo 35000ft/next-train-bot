@@ -1,6 +1,5 @@
 import functools
 import importlib
-import random
 import time
 
 from botpy import logging

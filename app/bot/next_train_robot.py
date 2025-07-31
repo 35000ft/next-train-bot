@@ -1,3 +1,5 @@
+from typing import Dict
+
 import botpy
 from botpy import logging
 from botpy.message import GroupMessage
@@ -28,10 +30,12 @@ class NextTrainClient(botpy.Client):
     cache = AsyncLRUCache(maxsize=128)
     code_manager = CodeManager(ttl_seconds=60)
 
-    # TODO
-    async def send_help(self, message: GroupMessage, command_dict):
-        all_command = [f'{i + 1}. {getattr(command_item[1], '__help') or command_item[0]}' for i, command_item in
-                       enumerate(command_dict.items())]
+    async def send_help(self, message: GroupMessage, command_dict: Dict[str, str]):
+        handlers = {
+            x: dynamic_import(command_dict[x]) for x in command_dict.keys()
+        }
+        all_command = [f'{i + 1}. {getattr(item[1], '__help') or item[0]}' for i, item in
+                       enumerate(handlers.items())]
         command_str = '\n'.join(all_command)
         return await message.reply(content=f'支持的指令如下:\n{command_str}')
 
