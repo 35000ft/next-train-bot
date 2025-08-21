@@ -1,3 +1,4 @@
+import os
 from typing import List, Dict, Tuple
 
 from botpy import logging
@@ -64,7 +65,7 @@ async def handle_get_station_realtime_core(message, station: railsystem.Station,
     for line_id, train_info_list in train_info_dict.items():
         line = line_dict.get(line_id)
         if line:
-            content += f'{line.name}:\n'
+            content += f"""<a href='{os.getenv("NEXT_TRAIN_PAGE_BASEURL")}/station/schedule/{station.id}/{line.id}'>{line.name}</a>:\n"""
             _train_list = filter_latest_train_for_each_terminal(train_info_list, timezone=station.timezone)
             if not _train_list:
                 content += '    暂无列车\n'
@@ -82,7 +83,7 @@ async def handle_get_station_realtime_core(message, station: railsystem.Station,
             content += tabulate(table, headers, tablefmt='simple')
 
             content += '\n'
-
+    content += f"<a href='{os.getenv("NEXT_TRAIN_PAGE_BASEURL")}/station/{station.id}'>点此查看详情</a>"
     return await message.reply(content=content, msg_seq=2)
 
 
