@@ -22,12 +22,14 @@ def load_account_info(account: str) -> dict:
     token = os.getenv(f'{account}_WECHAT_TOKEN')
     wechat_id = os.getenv(f'{account}_WECHAT_ID')
     appsecret = os.getenv(f'{account}_APPSECRET')
+    next_train_client_key = os.getenv(f'{account}_NEXT_TRAIN_CLIENT_KEY')
     if not token or not wechat_id:
         raise Exception('account is not valid, cause no wechat token or wechat id provided')
     return {
         'wechat_token': token,
         'wechat_id': wechat_id,
         'appsecret': appsecret,
+        'next_train_client_key': next_train_client_key,
     }
 
 
