@@ -11,6 +11,7 @@ class WechatArticle(Base):
     title = Column(String, nullable=False)
     description = Column(String, nullable=True)
     picurl = Column(String, nullable=True)
+    group_id = Column(String, nullable=True)
     url = Column(String, nullable=True)
     is_active = Column(Boolean, nullable=False, default=True)
     create_time = Column(TIMESTAMP, server_default=func.current_timestamp(), nullable=True)
