@@ -82,8 +82,8 @@ class Permission(Base):
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
     name = Column(Text, nullable=False)
-    unikey = Column(String(255), nullable=False)
-    param = Column(Text, nullable=True)
+    code = Column(String(255), nullable=False)
+    params = Column(Text, nullable=True)
     is_active = Column(Boolean, default=True, nullable=True)
     create_time = Column(TIMESTAMP, server_default=func.current_timestamp(), nullable=True)
     update_time = Column(TIMESTAMP, server_default=func.current_timestamp(), nullable=True)

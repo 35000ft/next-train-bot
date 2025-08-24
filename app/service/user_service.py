@@ -102,7 +102,7 @@ def authorize(permission_key: str, param_getter=None):
             if param_getter:
                 param = param_getter(message)
             has_permission = list(
-                filter(lambda permission: permission.unikey == permission_key and permission.param == param,
+                filter(lambda permission: permission.code == permission_key and permission.params == param,
                        permissions))
             logger.info(f'user:{bot_user.openid} permission key:{permission_key} param:{param}')
             if has_permission:
