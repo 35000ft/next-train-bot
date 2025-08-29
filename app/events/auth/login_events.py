@@ -39,3 +39,29 @@ async def handle_signup_login(message: GroupMessage, username: str = None, email
             return await message.reply(content=f'登录成功，请回到网页刷新')
         else:
             return await message.reply(content='登录失败')
+
+
+async def handle_get_invite_code(message: GroupMessage, **kwargs):
+    account = kwargs.get('account')
+    timestamp = int(time.time())
+    userid = message.author.member_openid
+    group_id = account['wechat_id']
+    platform = 'wechat'
+    data_str: str = f'{userid}@{group_id}@{platform}@{timestamp}'
+    client_key = account.get('next_train_client_key')
+    sign = hmac.new(client_key.encode('utf-8'), data_str.encode('utf-8'), hashlib.sha256).hexdigest()
+    async with httpx.AsyncClient() as client:
+        url = f'{urllib.parse.urljoin(os.getenv("REALTIME_API_BASEURL"), "/users/invite-code/get")}'
+        resp = await client.post(url, data={
+            'group_id': group_id,
+            'user_id': userid,
+            'platform': platform,
+            'sign': sign,
+            'timestamp': timestamp,
+        })
+        resp.raise_for_status()
+    j_obj: dict = resp.json()
+    if not (failed := j_obj.get('data').get("failed")) and (invite_code := j_obj.get('data')):
+        return await message.reply(content=f'我们诚挚欢迎你加入「下一班車」，邀请码为：{invite_code}  5分钟内有效')
+    else:
+        return await message.reply(content='获取邀请码失败')
