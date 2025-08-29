@@ -37,7 +37,7 @@ class NextTrainClient(botpy.Client):
             x: dynamic_import(command_dict[x]) for x in command_dict.keys()
         }
         all_command = [f'{i + 1}. {getattr(item[1], '__help') or item[0]}' for i, item in
-                       enumerate(handlers.items())]
+                       enumerate(handlers.items()) if hasattr(item[1], '__help')]
         command_str = '\n'.join(all_command)
         return await message.reply(
             content=f'支持的指令如下:\n{command_str}\n时刻查询:https://mp.weixin.qq.com/s/6w5Ubc1Xuqdzozzu4n-KmQ')
