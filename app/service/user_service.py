@@ -1,18 +1,21 @@
+import functools
+from botpy import logging
 from typing import Optional, List
 
 from passlib.context import CryptContext
 from sqlalchemy import or_, join, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from app.config import get_db_session
 from app.models.auth import *
 from app.schemas.auth import UserCreate
 from app.utils.AsyncLRUCache import AsyncLRUCache
 from app.utils.common import WechatMessage
-from app.utils.exceptions import BusinessException
+from app.utils.exceptions import BusinessException, PermissionException
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 login_users = AsyncLRUCache(maxsize=2048)
+
+logger = logging.get_logger()
 
 
 async def create_user(db: AsyncSession, user: UserCreate) -> BotUser:
@@ -83,11 +86,30 @@ async def query_user(db: AsyncSession, account: str) -> BotUser:
     return bot_user
 
 
-async def authorize(message: WechatMessage, permission_key: str, param: str = None) -> bool:
-    if not permission_key:
-        return True
-    bot_user: BotUser = message.bot_user
-    if not bot_user:
-        return False
-    async with get_db_session() as session:
-        permissions = await get_user_permission(session, user_id=bot_user.id)
+def authorize(permission_key: str, param_getter=None):
+    def decorator(func):
+        @functools.wraps(func)
+        async def wrapper(message: WechatMessage, *args, **_kwargs):
+            if not permission_key:
+                return await func(message, *args, **_kwargs)
+            bot_user: BotUser = message.bot_user
+            if not bot_user:
+                raise PermissionException()
+            permissions: List[Permission] = bot_user.permissions
+            if not permissions:
+                raise PermissionException()
+            param = None
+            if param_getter:
+                param = param_getter(message)
+            has_permission = list(
+                filter(lambda permission: permission.unikey == permission_key and permission.param == param,
+                       permissions))
+            logger.info(f'user:{bot_user.openid} permission key:{permission_key} param:{param}')
+            if has_permission:
+                return await func(message, *args, **_kwargs)
+            else:
+                raise PermissionException()
+
+        return wrapper
+
+    return decorator

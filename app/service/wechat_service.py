@@ -8,11 +8,12 @@ from app.models.wechat import WechatArticle
 from app.schemas.wechat import Article
 
 
-async def query_articles(db: AsyncSession, keyword: str) -> List[Article]:
+async def query_articles(db: AsyncSession, keyword: str, partition: str) -> List[Article]:
     stmt = (
         select(WechatArticle)
         .where(WechatArticle.title.like(f'%{keyword}%'))
         .where(WechatArticle.is_active == True)
+        .where(WechatArticle.group_id == partition)
         .order_by(WechatArticle.create_time.desc())
     )
 

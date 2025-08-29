@@ -10,7 +10,7 @@ async def main():
     account_info: dict = load_account_info('zhjl')
     payload = {
         'author': {
-            'member_openid': "232sr2"
+            'member_openid': "232sr234ssd"
         },
         'group_openid': account_info['wechat_id']
     }
