@@ -35,6 +35,7 @@ async def handle_signup_login(message: GroupMessage, username: str = None, email
         })
         resp.raise_for_status()
         j_obj: dict = resp.json()
-        if token := j_obj.get('data').get("token"):
-            login_url = f'{os.getenv("NEXT_TRAIN_PAGE_BASEURL")}/oauth?token={token}&t={timestamp}'
-            return await message.reply(content=f'请按此登录:{login_url}')
+        if not (failed := j_obj.get('data').get("failed")):
+            return await message.reply(content=f'登录成功，请回到网页刷新')
+        else:
+            return await message.reply(content='登录失败')
