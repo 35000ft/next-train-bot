@@ -47,7 +47,6 @@ async def handle_signup_login(message: GroupMessage, authorization_code: str, us
         if not (failed := j_obj.get('data').get("failed")):
             return await message.reply(content=f'登录成功，请回到网页刷新')
         else:
-            logger.exception(f'请求Next Train第三方登录失败: 未返回token: {j_obj}')
             return await message.reply(content='请求登录失败')
 
 
