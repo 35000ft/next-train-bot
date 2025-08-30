@@ -4,6 +4,8 @@ import botpy
 from botpy import logging
 from botpy.message import GroupMessage
 
+from app.events.wechat_events import handle_query_wechat_article
+from app.schemas.wechat import ResponseMsgBody
 from app.utils.AsyncLRUCache import AsyncLRUCache
 from app.utils.command_utils import parse_command, find_context_command
 from app.utils.common import dynamic_import
@@ -35,16 +37,17 @@ class NextTrainClient(botpy.Client):
             x: dynamic_import(command_dict[x]) for x in command_dict.keys()
         }
         all_command = [f'{i + 1}. {getattr(item[1], '__help') or item[0]}' for i, item in
-                       enumerate(handlers.items())]
+                       enumerate(handlers.items()) if hasattr(item[1], '__help')]
         command_str = '\n'.join(all_command)
-        return await message.reply(content=f'支持的指令如下:\n{command_str}')
+        return await message.reply(
+            content=f'支持的指令如下:\n{command_str}\n时刻查询:https://mp.weixin.qq.com/s/6w5Ubc1Xuqdzozzu4n-KmQ')
 
     async def on_group_at_message_create(self, message: GroupMessage, command_dict: dict = None, **kwargs):
         if not command_dict:
             command_dict = self.command_dict
         try:
             command, params, argv = parse_command(message.content, accepted_commands=command_dict.keys())
-            if command == '指令':
+            if command in ('指令', '帮助', '-h', 'help'):
                 return await self.send_help(message, command_dict)
             if handler_str := command_dict.get(command):
                 handler = dynamic_import(handler_str)
@@ -62,5 +65,13 @@ class NextTrainClient(botpy.Client):
                     logger.info(f"上下文指令:{new_command}")
                     message.content = new_command
                     return await self.on_group_at_message_create(message, **kwargs)
+                else:
+                    # 可能是想要查询微信文章
+                    resp: ResponseMsgBody = await handle_query_wechat_article(message, keyword=message.content)
+                    if resp.Articles is not None:
+                        return resp
+                    else:
+                        # 没有找到文章 > 发送帮助
+                        return await self.send_help(message, command_dict)
         except Exception as e:
             return await exception_handler(message, e)
