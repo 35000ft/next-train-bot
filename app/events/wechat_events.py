@@ -10,7 +10,6 @@ from app.schemas.auth import UserCreate
 from app.schemas.wechat import Article, WechatMedia
 from app.service.user_service import create_user, authorize
 from app.service.wechat_service import query_articles
-from app.utils.common import command_wrapper, generate_username, WechatMessage
 from app.utils.exceptions import BusinessException
 from app.utils.security_utils import generate_invite_code
 from app.utils.wechat_utils import get_article

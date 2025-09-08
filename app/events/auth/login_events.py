@@ -24,7 +24,6 @@ async def handle_signup_login(message: GroupMessage, authorization_code: str, us
     platform = 'wechat'
     async with httpx.AsyncClient(timeout=120) as client:
         url = f'{os.getenv("REALTIME_API_BASEURL")}/users/bot-login'
-        timestamp = int(time.time())
         data_str: str = f'{userid}@{group_id}@{platform}@{authorization_code}'
         client_key = account.get('next_train_client_key')
         sign = hmac.new(client_key.encode('utf-8'), data_str.encode('utf-8'), hashlib.sha256).hexdigest()
@@ -44,7 +43,7 @@ async def handle_signup_login(message: GroupMessage, authorization_code: str, us
             logger.exception('请求Next Train第三方登录失败', exc_info=e)
             return await message.reply(content='请求登录失败')
         j_obj: dict = resp.json()
-        if not (failed := j_obj.get('data').get("failed")):
+        if not (failed := j_obj.get("failed")):
             return await message.reply(content=f'登录成功，请回到网页刷新')
         else:
             return await message.reply(content='请求登录失败')

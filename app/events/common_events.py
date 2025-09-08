@@ -97,4 +97,5 @@ async def handle_get_wiki_summary(message: GroupMessage | C2CMessage, keyword: s
                 if wiki_content:
                     wiki_content = replace_forbidden_word(wiki_content)
                     return await message.reply(content=wiki_content[0:max_word])
+    logger.info(f'Not supported wiki topics:{page.categories} keyword:{keyword}')
     return await message.reply(content='这是不能触碰的滑梯')
