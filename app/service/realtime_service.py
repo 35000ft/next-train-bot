@@ -382,12 +382,3 @@ async def get_train_plan(train_reg_no: str, _date: datetime):
     except Exception as e:
         logger.error(f'Get train plan failed, params:{query_params}', exc_info=e)
         raise Exception("")
-
-
-async def main():
-    s = time.time()
-    x = await get_schedule_image('新街口', '2号线', '13', '2', datetime.now(), use_browser=True)
-    print(time.time() - s)
-
-
-asyncio.run(main())
