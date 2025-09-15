@@ -35,5 +35,4 @@ class TrainInfo(BaseModel):
     terminal: str  # 终点站
     isFirstStop: bool  # 是否是首站
     trainType: str  # 列车类型
-    trainInfoId: int  # 列车信息 ID
     isLastStop: bool  # 是否是末站

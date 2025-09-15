@@ -23,7 +23,7 @@ async def fetch(_url, method: str = 'get', **kwargs):
         raise Exception('Method must be "get" or "post"')
     if resp.status_code == 200 and (j_obj := resp.json()):
         if j_obj['failed']:
-            raise Exception(f"failed fetch: {j_obj['msg']}")
+            raise Exception(f"failed fetch:{_url} method:{method} msg:{j_obj['msg']}")
         else:
             return j_obj['data'] if 'data' in j_obj else j_obj
     else:
