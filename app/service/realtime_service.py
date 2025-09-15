@@ -36,7 +36,7 @@ async def get_station_realtime(station_id: str, line_ids: List[str]) -> Dict[str
             return None
         return [TrainInfo(**x) for x in r if x]
 
-    base_url = f'{os.getenv("REALTIME_BASEURL")}/metro-realtime/realtime/station/train-info/v2/{station_id}/'
+    base_url = f'{os.getenv("REALTIME_BASEURL")}/metro-realtime/realtime/train-info/station/v2/{station_id}/'
     tasks = []
     try:
         for line_id in line_ids:
