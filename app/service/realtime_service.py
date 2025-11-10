@@ -36,7 +36,7 @@ async def get_station_realtime(station_id: str, line_ids: List[str]) -> Dict[str
             return None
         return [TrainInfo(**x) for x in r if x]
 
-    base_url = f'{os.getenv("REALTIME_BASEURL")}/metro-realtime/realtime/train-info/station/v2/{station_id}/'
+    base_url = f'{os.getenv("REALTIME_API_BASEURL")}/realtime/train-info/station/v2/{station_id}/'
     tasks = []
     try:
         for line_id in line_ids:
@@ -320,7 +320,7 @@ def gen_station_schedule(schedule_header: dict, line: dict, station_name: str, _
 
 async def get_line_schedule_headers(line_id: str):
     async with httpx.AsyncClient() as client:
-        url = f'{os.getenv("REALTIME_BASEURL")}/metro-realtime/schedules/header/get/line/{line_id}'
+        url = f'{os.getenv("REALTIME_API_BASEURL")}/schedules/header/get/line/{line_id}'
         resp = await client.get(url)
         resp.raise_for_status()
         j_obj = resp.json()
@@ -340,7 +340,7 @@ async def get_schedule_image_by_html2image(station_id: str, line_id: str, _date:
     if not header:
         raise BusinessException(f"没有可用的时刻表 日期:{_date.strftime('%Y-%m-%d')} 线路ID:{line_id}")
 
-    url = f'{os.getenv("REALTIME_BASEURL")}/metro-realtime/station/schedule/v3/{station_id}/{header["scheduleId"]}'
+    url = f'{os.getenv("REALTIME_API_BASEURL")}/station/schedule/v3/{station_id}/{header["scheduleId"]}'
     try:
         async with httpx.AsyncClient() as client:
             resp = await client.post(url)
@@ -375,7 +375,7 @@ async def get_schedule_image(station_name: str, line_name: str, station_id: str,
 
 
 async def get_train_plan(train_reg_no: str, _date: datetime):
-    url = f'{os.getenv("REALTIME_BASEURL")}/metro-realtime/metro-trace/get-train-plan/regno/'
+    url = f'{os.getenv("REALTIME_API_BASEURL")}/metro-trace/get-train-plan/regno/'
     query_params = {
         'regNo': train_reg_no,
         'date': _date.strftime("%Y-%m-%d")
