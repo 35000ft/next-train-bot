@@ -9,6 +9,8 @@ import httpx
 from botpy import get_logger
 from lxml import etree
 
+from app.utils.exceptions import BusinessException
+
 headers = {
     'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36"
 }
@@ -65,17 +67,17 @@ async def find_radar_station_url(station_name: str):
     return None
 
 
-async def get_radar_image(station_name: str):
+async def get_radar_image(station_name: str) -> str:
     url = await find_radar_station_url(station_name)
     if not url:
-        raise Exception(f"没有找到 {station_name} 这个雷达站哦")
+        raise BusinessException(f"没有找到 {station_name} 这个雷达站哦")
     async with httpx.AsyncClient() as client:
         resp = await client.get(url, headers=headers)
         resp.raise_for_status()
         tree = etree.HTML(resp.text)
         img_url = tree.xpath("//img[@id='imgpath']/@src")
         if not img_url:
-            raise Exception("获取雷达图失败")
+            raise BusinessException("获取雷达图失败")
         # client.get(img_url[0], headers=headers)
         return img_url[0]
 

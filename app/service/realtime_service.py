@@ -340,7 +340,7 @@ async def get_schedule_image_by_html2image(station_id: str, line_id: str, _date:
     if not header:
         raise BusinessException(f"没有可用的时刻表 日期:{_date.strftime('%Y-%m-%d')} 线路ID:{line_id}")
 
-    url = f'{os.getenv("REALTIME_API_BASEURL")}/station/schedule/v3/{station_id}/{header["scheduleId"]}'
+    url = f'{os.getenv("REALTIME_API_BASEURL")}/realtime/train-info/station/schedule/v3/{station_id}/{header["scheduleId"]}'
     try:
         async with httpx.AsyncClient() as client:
             resp = await client.post(url)
