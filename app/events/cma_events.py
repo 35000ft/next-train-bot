@@ -24,7 +24,7 @@ async def handle_query_radar(message: GroupMessage | C2CMessage, station_name: s
     try:
         img_url = await get_radar_image(station_name)
     except BusinessException as e:
-        return message.reply(content=e.message)
+        return await message.reply(content=e.message)
     media_info = await upload_media(media_type='image', media_url=img_url, **kwargs)
     return await message.reply(media=media_info)
 

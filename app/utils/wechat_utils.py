@@ -30,6 +30,7 @@ def load_account_info(account: str) -> dict:
         'wechat_id': wechat_id,
         'appsecret': appsecret,
         'next_train_client_key': next_train_client_key,
+        'default_railsystem': os.getenv(f'{account}_DEFAULT_RAILSYSTEM')
     }
 
 

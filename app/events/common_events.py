@@ -23,7 +23,6 @@ async def handle_get_station_by_name(message: GroupMessage | C2CMessage, station
     next_msg_seq = now_msg_seq + 1
     _railsystem: str = kwargs.get('r')
     group_id, user_id = get_group_and_user_id(message)
-    logger.info(f'group_id: {group_id} user_id: {user_id}')
     station: List[Station] | Station = await get_station_by_keyword(station_name, _railsystem)
     if not station:
         raise BusinessException(
@@ -35,7 +34,6 @@ async def handle_get_station_by_name(message: GroupMessage | C2CMessage, station
         if len(railsystem_code_set) > 1:
             # 如果有多个线网 则按照个性化配置默认线网去重
             _default_railsystem = await get_default_railsystem_code(group_id=group_id, user_id=user_id)
-            logger.info(f'group_id:{group_id} user_id:{user_id} 默认线网:{_default_railsystem}')
             if _default_railsystem:
                 filtered_stations = list(filter(lambda _s: _s.system_code == _default_railsystem, station))
                 if not filtered_stations:
