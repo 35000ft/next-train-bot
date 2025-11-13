@@ -15,7 +15,9 @@ logger = logging.get_logger()
 async def handle_signup_login(message: GroupMessage, authorization_code: str, username: str = None, email: str = None,
                               phone: str = None,
                               **kwargs):
-    account = kwargs.get('account')
+    account = kwargs.get('account_info')
+    if not account:
+        raise ValueError("Account info not provided")
     if not username:
         username = f'botu_{uuid.uuid4()}'
     userid = message.author.member_openid

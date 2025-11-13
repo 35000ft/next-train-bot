@@ -13,6 +13,7 @@ from app.schemas import railsystem
 logger = logging.get_logger()
 
 
+@alru_cache(maxsize=64, ttl=600)
 async def get_default_railsystem_code(group_id: str, user_id: str) -> str | None:
     if not group_id and not user_id:
         return None
@@ -78,7 +79,7 @@ async def query_personal_config(category_key: str, user_id: str = None, group_id
     if not user_id and not group_id:
         raise Exception('user_id or group_id is required')
     async with get_db_session() as session:
-        stmt = select(PersonalConfig).where(PersonalConfig.status == 1, category_key == category_key)
+        stmt = select(PersonalConfig).where(PersonalConfig.status == 1, PersonalConfig.category_key == category_key)
         if user_id:
             stmt = stmt.where(or_(PersonalConfig.user_id == user_id, PersonalConfig.group_id == group_id))
         elif group_id:

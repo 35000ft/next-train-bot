@@ -88,23 +88,19 @@ async def handle_get_station_realtime_core(message, station: railsystem.Station,
 
 @command_wrapper(help='实时 新街口')
 async def handle_get_station_realtime(message: GroupMessage | C2CMessage, station_name: str, **kwargs):
-    account_info = kwargs.get('account_info', {})
     r: Tuple[railsystem.Station, Dict[str, railsystem.Line]] = \
-        await (handle_get_station_by_name(message, station_name, command_name='实时',
-                                          r=account_info.get('default_railsystem'), **kwargs))
+        await (handle_get_station_by_name(message, station_name, command_name='实时', **kwargs))
     station, line_dict = r
-
     return await handle_get_station_realtime_core(message, station, line_dict)
 
 
 @command_wrapper(help='时刻表 新街口 2(可选, 指定线路)')
 async def handle_get_station_schedule(message: GroupMessage | C2CMessage, station_name: str, line_code: str = None,
                                       **kwargs):
-    account_info = kwargs.get('account_info', {})
+    # 设置默认线网
     group_id, user_id = get_group_and_user_id(message)
     r: Tuple[railsystem.Station, Dict[str, railsystem.Line]] = \
-        await (handle_get_station_by_name(message, station_name, command_name='时刻表',
-                                          r=account_info.get('default_railsystem'), **kwargs))
+        await (handle_get_station_by_name(message, station_name, command_name='时刻表', **kwargs))
     station, line_dict = r
     if len(line_dict) == 0:
         return await message.reply(content=f'车站:{station.name} 暂无可查看的时刻表', msg_seq=2)

@@ -19,28 +19,22 @@ logger = logging.get_logger()
 
 async def handle_get_station_by_name(message: GroupMessage | C2CMessage, station_name: str, **kwargs) -> (
         Tuple[railsystem.Station, Dict[str, railsystem.Line]] | None):
-    now_msg_seq = kwargs.get('msg_seq', 1)
-    next_msg_seq = now_msg_seq + 1
-    _railsystem: str = kwargs.get('r')
     group_id, user_id = get_group_and_user_id(message)
-    station: List[Station] | Station = await get_station_by_keyword(station_name, _railsystem)
+    station: List[Station] | Station = await get_station_by_keyword(station_name)
     if not station:
         raise BusinessException(
-            f'暂不支持 {station_name} 这个车站哦。如已设置别名，请通过以下指令查询:\n/{kwargs.get("command_name", "<指令名>")}a {station_name}')
+            f'暂不支持 {station_name} 这个车站哦。如已设定别名，请通过以下指令查询:\n/{kwargs.get("command_name", "<指令名>")}a {station_name}')
 
     # a:查看全部结果 不过滤线网
     if not kwargs.get('a') and isinstance(station, list):
         railsystem_code_set = {_s.system_code for _s in station}
         if len(railsystem_code_set) > 1:
             # 如果有多个线网 则按照个性化配置默认线网去重
-            _default_railsystem = await get_default_railsystem_code(group_id=group_id, user_id=user_id)
-            if _default_railsystem:
-                filtered_stations = list(filter(lambda _s: _s.system_code == _default_railsystem, station))
+            if default_railsystem_code := await get_default_railsystem_code(group_id=group_id, user_id=user_id):
+                filtered_stations = list(filter(lambda _s: _s.system_code == default_railsystem_code, station))
                 if not filtered_stations:
-                    await message.reply(
-                        msg_seq=next_msg_seq,
-                        content=f'线网:{_default_railsystem} 没有 {station_name} 这个车站哦，可以加上"-a"在全部线网查找')
-                    return
+                    raise BusinessException(
+                        f'线网:{default_railsystem_code} 没有 {station_name} 这个车站哦，可以加上"-a"在全部线网查找')
                 if len(filtered_stations) == 1:
                     station = filtered_stations[0]
                 else:
@@ -52,14 +46,13 @@ async def handle_get_station_by_name(message: GroupMessage | C2CMessage, station
         if _command_name:
             option_str = await save_context_command(user_id=user_id, group_id=group_id, cache=kwargs.get('_bot').cache,
                                                     command_list=[
-                                                        f'/{_command_name} {s.name} -r {s.system_code}\n' for s
+                                                        f'{_command_name} {s.name} -r {s.system_code}\n' for s
                                                         in station], )
             raise BusinessException(content + option_str)
 
     _station: railsystem.Station = await get_station_detail_byid(station.id)
     if not _station:
-        await message.reply(content=f'获取车站:{station_name} 信息失败', msg_seq=next_msg_seq)
-        return
+        raise BusinessException(f'获取车站:{station_name} 信息失败')
     line_dict: Dict[str, railsystem.Line] = {x.id: x for x in _station.lines}
     # 指定线路
     if (given_line_code := kwargs.get('l')) and isinstance(given_line_code, str):
