@@ -83,7 +83,6 @@ def parse_wind_speed(wind_str: str):
 
 
 class WeatherReport(BaseModel):
-    metar_id: int
     icaoId: str
     receiptTime: str
     obsTime: int
@@ -111,11 +110,9 @@ class WeatherReport(BaseModel):
     vertVis: Optional[int] = None
     metarType: str
     rawOb: str
-    mostRecent: int
     lat: float
     lon: float
     elev: int
-    prior: int
     name: str
     clouds: List[Cloud] = None
     rawTaf: str

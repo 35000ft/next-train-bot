@@ -9,7 +9,7 @@ from app.schemas.wechat import ResponseMsgBody
 from app.utils.AsyncLRUCache import AsyncLRUCache
 from app.utils.command_utils import parse_command, find_context_command
 from app.utils.common import dynamic_import
-from app.utils.exceptions import exception_handler
+from app.utils.exceptions import exception_handler, InputException
 from app.utils.qqbot_utils import get_group_and_user_id
 from app.utils.security_utils import CodeManager
 
@@ -40,7 +40,9 @@ class NextTrainClient(botpy.Client):
                        enumerate(handlers.items()) if hasattr(item[1], '__help')]
         command_str = '\n'.join(all_command)
         return await message.reply(
-            content=f'支持的指令如下:\n{command_str}\n时刻查询:https://mp.weixin.qq.com/s/6w5Ubc1Xuqdzozzu4n-KmQ')
+            content=f'▲留言请直接输入, 我们会尽快回复.'
+                    f'\n⚪支持的指令如下:\n{command_str}'
+                    f'\n<a href="https://nmtr.online/next-train/#/?r=NJMTR">时刻查询请按此</>')
 
     async def on_group_at_message_create(self, message: GroupMessage, command_dict: dict = None, **kwargs):
         if not command_dict:

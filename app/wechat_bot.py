@@ -71,5 +71,6 @@ async def handle_receive_msg(request: Request, account: str = Query(...)):
         command_dict = {}
     resp: ResponseMsgBody = await bot_instance.on_group_at_message_create(message, account_info=account_info,
                                                                           command_dict=command_dict)
-    logger.info(f'response:{resp.to_xml()}')
-    return Response(content=resp.to_xml(), media_type="application/xml; charset=UTF-8")
+    if resp:
+        logger.info(f'response:{resp.to_xml()}')
+        return Response(content=resp.to_xml(), media_type="application/xml; charset=UTF-8")

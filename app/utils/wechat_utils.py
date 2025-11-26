@@ -73,7 +73,7 @@ async def upload_media(media_type: str = 'image', media_url: str = None, media_p
         "item": [ ]
         }
     """
-    token = await get_access_token(kwargs.get('account'))
+    token = await get_access_token(kwargs.get('account_info'))
     filename = kwargs.get('filename')
     url = f'https://api.weixin.qq.com/cgi-bin/media/upload?access_token={token}&type={media_type}'
     async with httpx.AsyncClient() as _client:
