@@ -79,7 +79,7 @@ async def get_station_by_keyword(keyword: str, railsystem: str = None) -> List[S
 @alru_cache(maxsize=64, ttl=600)
 async def get_station_detail_byid(station_id: str):
     logger.debug(f'station id:{station_id}')
-    url = f'https://nmtr.online/file/railsystem/stations/id/{station_id}'
+    url = f'https://nmtr.site/file/railsystem/stations/id/{station_id}'
     try:
         async with httpx.AsyncClient() as client:
             resp = await client.get(url=url, headers=nmtr_headers)
