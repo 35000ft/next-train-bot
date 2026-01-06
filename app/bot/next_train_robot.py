@@ -7,6 +7,7 @@ from app.events.civil_aviation_events import handle_query_flight, handle_query_a
 from app.events.cma_events import handle_query_radar, handle_query_wiki_climate
 from app.events.common_events import handle_fa, handle_get_wiki_summary
 from app.events.cr_events import handle_query_emu_no, handle_query_train_price, handle_query_remain_tickets
+from app.events.geo_events import handle_query_map_tile
 from app.events.next_train_events import handle_get_station_realtime, handle_get_default_railsystem, handle_query_price
 from app.events.next_train_events import handle_get_station_schedule, handle_daily_ticket, \
     handle_set_alias_station_name, \
@@ -43,6 +44,7 @@ class NextTrainClient(botpy.Client):
         '车票': handle_query_train_price,
         '余票': handle_query_remain_tickets,
         '关联': handle_validate_connect_group,
+        '地图': handle_query_map_tile,
     }
     private_command_dict = {
         '注册': handle_signup,
