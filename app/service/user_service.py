@@ -39,7 +39,7 @@ async def create_user(db: AsyncSession, user: UserCreate) -> BotUser:
         email=user.email,
         password=hashed_password,
         openid=user.openid,
-        is_active=True
+        is_active=1
     )
     db.add(db_user)
     await db.commit()
@@ -71,7 +71,7 @@ async def query_user(db: AsyncSession, account: str) -> BotUser:
     stmt = (
         select(BotUser)
         .where(and_(
-            BotUser.is_active == True,
+            BotUser.is_active == 1,
             or_(
                 BotUser.openid == account,
                 BotUser.email == account

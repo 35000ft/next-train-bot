@@ -12,7 +12,7 @@ async def query_articles(db: AsyncSession, keyword: str, partition: str) -> List
     stmt = (
         select(WechatArticle)
         .where(WechatArticle.title.like(f'%{keyword}%'))
-        .where(WechatArticle.is_active == True)
+        .where(WechatArticle.is_active == 1)
         .where(WechatArticle.group_id == partition)
         .order_by(WechatArticle.create_time.desc())
     )

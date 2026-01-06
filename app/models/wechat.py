@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, TIMESTAMP, func, Boolean, Integer
+from sqlalchemy import Column, String, TIMESTAMP, func, Boolean, Integer, SmallInteger
 
 from .base import Base
 
@@ -13,7 +13,7 @@ class WechatArticle(Base):
     picurl = Column(String, nullable=True)
     group_id = Column(String, nullable=True)
     url = Column(String, nullable=True)
-    is_active = Column(Boolean, nullable=False, default=True)
+    is_active = Column(SmallInteger, nullable=False, default=True)
     create_time = Column(TIMESTAMP, server_default=func.current_timestamp(), nullable=True)
     __table_args__ = {
         'schema': schema
