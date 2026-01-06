@@ -42,7 +42,7 @@ class NextTrainClient(botpy.Client):
         return await message.reply(
             content=f'▲留言请直接输入, 我们会尽快回复.'
                     f'\n⚪支持的指令如下:\n{command_str}'
-                    f'\n<a href="https://nmtr.online/next-train/#/?r=NJMTR">时刻查询请按此</a>')
+                    f'\n<a href="https://nmtr.site/next-train/#/?r=NJMTR">时刻查询请按此</a>')
 
     async def on_group_at_message_create(self, message: GroupMessage, command_dict: dict = None, **kwargs):
         if not command_dict:

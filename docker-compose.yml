@@ -6,6 +6,6 @@ services:
     env_file:
       - wechat_prod.env
     extra_hosts:
-      - "nmtr.online:host-gateway"
+      - "nmtr.site:host-gateway"
     volumes:
       - /usr/share/py-projects/next-train-bot/data:/app/data
