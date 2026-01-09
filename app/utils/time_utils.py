@@ -1,6 +1,7 @@
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import List
+from zoneinfo import ZoneInfo
 
 
 def get_offset_from_str(offset_str):
@@ -11,8 +12,8 @@ def get_offset_from_str(offset_str):
     return hours * 60 + minutes
 
 
-def get_now(timezone: str = "Asia/Shanghai") -> datetime:
-    return datetime.now(ZoneInfo(timezone))
+def get_now(_timezone: str = "Asia/Shanghai") -> datetime:
+    return datetime.now(ZoneInfo(_timezone))
 
 
 def end_of_date_timestamp(_date: datetime) -> float:

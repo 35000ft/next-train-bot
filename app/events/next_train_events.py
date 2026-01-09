@@ -75,7 +75,6 @@ async def handle_get_station_realtime_core(message, station: railsystem.Station,
                     train_info.terminal,
                     train_info.dep.strftime('%H:%M') if not train_info.isLastStop
                     else train_info.arr.strftime('%H:%M'),
-                    train_info.trainType if not train_info.isLastStop else '终到'
                 ]
                 for train_info in _train_list]
             content += tabulate(table, headers, tablefmt='simple')
