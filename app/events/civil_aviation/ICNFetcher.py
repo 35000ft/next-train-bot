@@ -1,13 +1,12 @@
 import asyncio
+import httpx
+from botpy import logging
 from datetime import datetime, timedelta
 from typing import List
 
-import httpx
-from botpy import logging
-
 from app.events.civil_aviation.Schemas import QueryFlightForm, FlightInfo
 from app.events.civil_aviation.utils.filters import flight_filter
-from app.utils.time_utils import get_now, get_offset_from_str
+from app.utils.time_utils import get_now
 
 logger = logging.get_logger()
 
@@ -28,7 +27,7 @@ class ICNFetcher:
     supported_airports = []
 
     def now_time(self):
-        return get_now(get_offset_from_str(self.timezone))
+        return get_now(self.timezone)
 
     def extract_airport(self, data):
         if (ap := data.get("airportName1")) and len(ap) >= 0:

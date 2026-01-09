@@ -289,7 +289,7 @@ def gen_station_schedule(schedule_header: dict, line: dict, station_name: str, _
         'station_name': station_name,
         'line_name': line.get('name'),
         'line_color': line.get('color'),
-        'create_time': get_now(480).strftime('%Y-%m-%d %H:%M:%S'),
+        'create_time': get_now("Asia/Shanghai").strftime('%Y-%m-%d %H:%M:%S'),
     }
     with open(Path('data/templates') / 'station-schedule-template.html', 'r', encoding='utf-8') as f:
         template_str = f.read()
@@ -298,7 +298,7 @@ def gen_station_schedule(schedule_header: dict, line: dict, station_name: str, _
         hti = Html2Image(output_path=Path('data/temp'))
         hti.browser.flags = ['--no-sandbox', '--disable-dev-shm-usage', ]
         temp_filename = f'{uuid.uuid4()}.png'
-        temp_file_path = hti.screenshot(html_str=html_str, save_as=temp_filename, size=(480, 2500))
+        temp_file_path = hti.screenshot(html_str=html_str, save_as=temp_filename, size=("Asia/Shanghai", 2500))
         if not temp_file_path:
             raise BusinessException("生成时刻表图片失败")
         else:
@@ -316,6 +316,7 @@ def gen_station_schedule(schedule_header: dict, line: dict, station_name: str, _
             raise e
         finally:
             os.remove(temp_file_path)
+    return None
 
 
 async def get_line_schedule_headers(line_id: str):

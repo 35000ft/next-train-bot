@@ -91,7 +91,7 @@ async def handle_query_remain_tickets(message: GroupMessage | C2CMessage, from_s
         via_stations = []
 
     dep_date_str: str = kwargs.get('d')
-    now = get_now(480)
+    now = get_now("Asia/Shanghai")
     dep_date = now
     try:
         if dep_date_str:

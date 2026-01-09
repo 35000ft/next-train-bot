@@ -219,7 +219,7 @@ class ShanghaiFetcher:
                         break
             # 设置 国内出发/到达 国际出发/到达
             driver.execute_script(f"this.app.direction='{self.calc_direction(is_dep, kwargs.get('int', False))}'")
-            now = get_now(480)
+            now = get_now("Asia/Shanghai")
             # 时间范围 默认从现在开始
             driver.execute_script(f"document.getElementById('TimeMinute').value='{now.strftime('%H:%M')}'")
 

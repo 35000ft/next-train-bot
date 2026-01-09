@@ -175,7 +175,7 @@ class HKGFetcher:
             return list(_result)
 
         api_url = 'https://www.hongkongairport.com/flightinfo-rest/rest/flights'
-        now = get_now(480)
+        now = get_now("Asia/Shanghai")
         is_dep = True if not kwargs.get('arr') else False
         params = {
             'span': 1,

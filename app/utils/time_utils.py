@@ -11,8 +11,8 @@ def get_offset_from_str(offset_str):
     return hours * 60 + minutes
 
 
-def get_now(timeoffset: int = None) -> datetime:
-    return datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(minutes=timeoffset)
+def get_now(timezone: str = "Asia/Shanghai") -> datetime:
+    return datetime.now(ZoneInfo(timezone))
 
 
 def end_of_date_timestamp(_date: datetime) -> float:

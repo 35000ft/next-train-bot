@@ -26,7 +26,7 @@ class SZXFetcher:
     api_url = 'https://www.szairport.com/szjchbjk/hbcx/flightInfo'
 
     def now_time(self) -> datetime:
-        return get_now(480)
+        return get_now("Asia/Shanghai")
 
     async def parse_dep_flight_data_from_row(self, data: dict, flight_date: datetime) -> FlightInfo:
         dep_time = data.get('startSchemeTakeoffTime')
@@ -115,7 +115,7 @@ class SZXFetcher:
 
     async def fetch_flights(self, _form: QueryFlightForm, **kwargs):
         is_dep = True if not kwargs.get('arr') else False
-        now = get_now(480)
+        now = get_now("Asia/Shanghai")
         flight_date = now
 
         async def parse_flights(_flight_list: List[dict]):

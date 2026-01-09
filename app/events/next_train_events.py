@@ -18,7 +18,6 @@ from app.utils.common import command_wrapper
 from app.utils.exceptions import InputException
 from app.utils.qqbot_utils import get_group_and_user_id
 from app.utils.time_utils import get_now
-from app.utils.time_utils import get_offset_from_str
 from app.utils.wechat_utils import upload_media
 
 logger = logging.get_logger()
@@ -29,7 +28,7 @@ def filter_latest_train_for_each_terminal(train_info_list: List[TrainInfo], **kw
     按 terminal 分组，每组中选择 dep 最近且在当前时间之后的记录。
     """
     # 获取当前时间
-    now = time_utils.get_now(get_offset_from_str(kwargs['timezone']))
+    now = time_utils.get_now(kwargs['timezone'])
     if not train_info_list:
         return []
     # 按 terminal 分组
@@ -59,7 +58,7 @@ async def handle_get_station_realtime_core(message, station: railsystem.Station,
                                                                              line_ids=list(line_dict.keys()))
     if not train_info_dict:
         return await message.reply(content=f'获取 {station.name} 实时列车失败')
-    content = f'车站:{station.name} 实时列车 更新于:{time_utils.get_now(get_offset_from_str(station.timezone)).strftime("%H:%M:%S")}\n'
+    content = f'车站:{station.name} 实时列车 更新于:{time_utils.get_now(station.timezone).strftime("%H:%M:%S")}\n'
 
     for line_id, train_info_list in train_info_dict.items():
         line = line_dict.get(line_id)
@@ -118,7 +117,7 @@ async def handle_get_station_schedule(message: GroupMessage | C2CMessage, statio
     if not line and len(line_dict) == 1:
         line = list(line_dict.values())[0]
 
-    _date = get_now(get_offset_from_str(station.timezone))
+    _date = get_now(station.timezone)
     cache_key = f'schedule:{station.id}:{line.id}:{_date.strftime("%Y%m%d")}'
     if uploaded_file := await get_cached_uploaded_file(cache_key):
         return await message.reply(media_info=uploaded_file)

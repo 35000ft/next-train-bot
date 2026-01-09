@@ -266,7 +266,7 @@ class HGHFetcher:
             else:
                 max_page: int = int(page_nums[-2].strip('..').strip())
 
-            target_time: datetime = _form.at_time or get_now(480)
+            target_time: datetime = _form.at_time or get_now("Asia/Shanghai")
             cur_page = self.estimate_page(target_time, max_page, is_dep)
             max_fetch_page = kwargs.get('max_fetch_page', 3)
             fetch_count = 0
