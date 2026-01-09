@@ -28,7 +28,7 @@ def filter_latest_train_for_each_terminal(train_info_list: List[TrainInfo], **kw
     按 terminal 分组，每组中选择 dep 最近且在当前时间之后的记录。
     """
     # 获取当前时间
-    now = time_utils.get_now(kwargs['timezone'])
+    now = time_utils.get_now(kwargs['timezone']).replace(tzinfo=None)
     if not train_info_list:
         return []
     # 按 terminal 分组
