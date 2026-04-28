@@ -16,8 +16,17 @@ logger = logging.get_logger()
 class NextTrainClient(botpy.Client):
     cache = AsyncLRUCache(maxsize=128)
     code_manager = CodeManager(ttl_seconds=60)
-    # user_key -> conversation_id
-    _dify_conversations: dict[str, str] = {}
+    # user_key -> conversation_id, TTL 1 hour
+    _dify_conversations = AsyncLRUCache(maxsize=1024, ttl_seconds=3600)
+
+    LOCAL_COMMANDS = {
+        '清除上下文': '_cmd_clear_context',
+        '清除': '_cmd_clear_context',
+        'clear': '_cmd_clear_context',
+        'reset': '_cmd_clear_context',
+        '对话id': '_cmd_show_conversation_id',
+        'cid': '_cmd_show_conversation_id',
+    }
 
     async def on_ready(self):
         logger.info(f"robot「{self.robot.name}」 on_ready!")
@@ -28,6 +37,21 @@ class NextTrainClient(botpy.Client):
     async def on_group_at_message_create(self, message: GroupMessage) -> None:
         await self._handle_dify_chat(message)
 
+    async def _cmd_clear_context(self, message: GroupMessage | C2CMessage):
+        group_id, user_id = get_group_and_user_id(message)
+        user_key = f"{user_id}:{group_id}"
+        await self._dify_conversations.delete(user_key)
+        await message.reply(content='上下文已清除', msg_seq=1)
+
+    async def _cmd_show_conversation_id(self, message: GroupMessage | C2CMessage):
+        group_id, user_id = get_group_and_user_id(message)
+        user_key = f"{user_id}:{group_id}"
+        conversation_id = await self._dify_conversations.get(user_key)
+        if conversation_id:
+            await message.reply(content=f'当前对话ID: {conversation_id}', msg_seq=1)
+        else:
+            await message.reply(content='当前没有对话ID', msg_seq=1)
+
     async def _handle_dify_chat(self, message: GroupMessage | C2CMessage):
         group_id, user_id = get_group_and_user_id(message)
         user_key = f"{user_id}:{group_id}"
@@ -36,7 +60,14 @@ class NextTrainClient(botpy.Client):
             await message.reply(content='确认存活，还没亖')
             return
 
-        conversation_id = self._dify_conversations.get(user_key)
+        # 本地命令拦截
+        if content in self.LOCAL_COMMANDS:
+            handler_name = self.LOCAL_COMMANDS[content]
+            handler = getattr(self, handler_name)
+            await handler(message)
+            return
+
+        conversation_id = await self._dify_conversations.get(user_key)
         text_buffer = ""
         think_buffer = ""
         in_think = False
@@ -97,14 +128,14 @@ class NextTrainClient(botpy.Client):
                     return
 
             if new_conversation_id:
-                self._dify_conversations[user_key] = new_conversation_id
+                await self._dify_conversations.set(user_key, new_conversation_id)
 
             # 结束响应，发送剩余文本（丢弃未闭合的think内容）
             if text_buffer.strip():
                 await message.reply(content=text_buffer.strip(), msg_seq=msg_seq)
                 msg_seq += 1
 
-            if msg_seq == 1:
+            if msg_seq == 2:
                 await message.reply(content='没有收到回复哦~', msg_seq=msg_seq)
 
         except Exception as e:
