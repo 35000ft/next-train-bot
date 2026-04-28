@@ -19,23 +19,27 @@ rm -rf /var/lib/apt/lists/*
 ENV LANG='zh_CN.UTF-8'
 ENV LANGUAGE='zh_CN:zh:en_US:en'
 ENV LC_ALL='zh_CN.UTF-8'
-COPY /requirements.txt /app/requirements.txt
-COPY /github_requirements.txt /app/github_requirements.txt
 
-# 安装项目依赖
-RUN pip install --no-cache-dir -r /app/requirements.txt
+# 安装 uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+# 复制项目文件
+COPY pyproject.toml /app/pyproject.toml
+COPY uv.lock /app/uv.lock
+WORKDIR /app
+
+# 使用 uv 安装依赖
+RUN uv sync --frozen --no-dev
 
 FROM bot-base
 
 COPY . /app
 WORKDIR /app
 
-
 RUN mkdir -p /app/data \
     && mkdir -p /app/log \
     && mkdir -p /app/data/schedules \
     && mkdir -p /app/data/ticket-prices
-RUN pip install --no-cache-dir -r /app/github_requirements.txt
 
 # 定义容器启动时运行的命令
-ENTRYPOINT ["python3", "-m","app.main"]
+ENTRYPOINT ["uv", "run", "python", "-m", "app.main"]

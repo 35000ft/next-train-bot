@@ -25,15 +25,14 @@ logger = logging.get_logger()
 class NextTrainClient(botpy.Client):
     command_dict = {
         '实时': handle_get_station_realtime,
-        '实时a': handle_get_station_realtime_alias_mode,
         '默认线网': handle_get_default_railsystem,
         '时刻表': handle_get_station_schedule,
         '票价': handle_query_price,
-        '日票': handle_daily_ticket,
-        '投稿': handle_post,
-        '发': handle_fa,
+        # '日票': handle_daily_ticket,
+        # '投稿': handle_post,
+        # '发': handle_fa,
         '担当': handle_query_emu_no,
-        '机场大屏': handle_query_flight,
+        # '机场大屏': handle_query_flight,
         '机场报文': handle_query_airport_weather_report,
         '报文': handle_query_airport_weather_report,
         '车站别名': handle_set_alias_station_name,
@@ -43,7 +42,6 @@ class NextTrainClient(botpy.Client):
         '气候': handle_query_wiki_climate,
         '车票': handle_query_train_price,
         '余票': handle_query_remain_tickets,
-        '关联': handle_validate_connect_group,
         '地图': handle_query_map_tile,
     }
     private_command_dict = {
